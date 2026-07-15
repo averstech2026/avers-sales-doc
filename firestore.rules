@@ -146,9 +146,32 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    function isValidPresentationSlideContent(data) {
+      return data is map
+        && (!('title' in data) || (data.title is string && data.title.size() <= 300))
+        && (!('badge' in data) || (data.badge is string && data.badge.size() <= 1000))
+        && (!('disclaimer' in data) || (data.disclaimer is string && data.disclaimer.size() <= 1000))
+        && (!('subtitle' in data) || (data.subtitle is string && data.subtitle.size() <= 300))
+        && (!('bulletsText' in data) || (data.bulletsText is string && data.bulletsText.size() <= 5000))
+        && (!('body' in data) || (data.body is string && data.body.size() <= 5000))
+        && (!('qrCaption' in data) || (data.qrCaption is string && data.qrCaption.size() <= 1000))
+        && (!('imageDataUrl' in data)
+          || data.imageDataUrl == null
+          || (data.imageDataUrl is string && data.imageDataUrl.size() <= 900000))
+        && (!('qrImageDataUrl' in data)
+          || data.qrImageDataUrl == null
+          || (data.qrImageDataUrl is string && data.qrImageDataUrl.size() <= 900000));
+    }
+
     function isValidPresentationSlidesSettings() {
       let data = request.resource.data;
-      return (!('aboutImageDataUrl' in data)
+      return (!('slides' in data) || (
+          data.slides is map
+          && (!('about' in data.slides) || isValidPresentationSlideContent(data.slides.about))
+          && (!('recognition' in data.slides) || isValidPresentationSlideContent(data.slides.recognition))
+          && (!('kiosk' in data.slides) || isValidPresentationSlideContent(data.slides.kiosk))
+        ))
+        && (!('aboutImageDataUrl' in data)
           || data.aboutImageDataUrl == null
           || (data.aboutImageDataUrl is string && data.aboutImageDataUrl.size() <= 900000))
         && (!('recognitionImageDataUrl' in data)
@@ -158,8 +181,8 @@ service cloud.firestore {
           || data.qrImageDataUrl == null
           || (data.qrImageDataUrl is string && data.qrImageDataUrl.size() <= 900000))
         && (!('updatedAt' in data) || data.updatedAt is string)
-        && (!('updatedByUid' in data) || data.updatedByUid is string)
-        && (!('updatedByName' in data) || data.updatedByName is string);
+        && (!('updatedByUid' in data) || data.updatedByUid == null || data.updatedByUid is string)
+        && (!('updatedByName' in data) || data.updatedByName == null || data.updatedByName is string);
     }
 
     match /settings/{docId} {

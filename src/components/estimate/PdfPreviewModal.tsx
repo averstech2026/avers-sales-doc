@@ -8,7 +8,7 @@ import {
   wirePdfImageFallbacks,
   type PdfExportOptions,
 } from '../../services/export/pdf';
-import { ensurePresentationSlideAssets } from '../../services/presentationSlides';
+import { loadPresentationSlidesLibrary } from '../../services/presentationSlides';
 
 interface PdfPreviewModalProps {
   open: boolean;
@@ -32,7 +32,8 @@ export function PdfPreviewModal({
 
   const hasSlides =
     estimate.presentationSlides?.about === true ||
-    estimate.presentationSlides?.recognition === true;
+    estimate.presentationSlides?.recognition === true ||
+    estimate.presentationSlides?.kiosk === true;
 
   useEffect(() => {
     if (!open || !sheetRef.current) return;
@@ -40,7 +41,7 @@ export function PdfPreviewModal({
     let cancelled = false;
 
     const render = async () => {
-      const slideAssets = await ensurePresentationSlideAssets();
+      const slidesLibrary = await loadPresentationSlidesLibrary();
       if (cancelled || !sheetRef.current) return;
 
       sheet.replaceChildren();
@@ -49,7 +50,7 @@ export function PdfPreviewModal({
       sheet.appendChild(styleEl);
       sheet.insertAdjacentHTML(
         'beforeend',
-        buildPdfHtml(estimate, { ...options, slideAssets })
+        buildPdfHtml(estimate, { ...options, slidesLibrary })
       );
       wirePdfImageFallbacks(sheet);
     };

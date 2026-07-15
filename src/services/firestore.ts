@@ -80,6 +80,7 @@ export async function saveEstimate(
     data.presentationSlides = {
       about: estimate.presentationSlides.about === true,
       recognition: estimate.presentationSlides.recognition === true,
+      kiosk: estimate.presentationSlides.kiosk === true,
     };
   }
   if (estimate.isDraft !== undefined) {
@@ -219,6 +220,7 @@ export async function toggleArchiveEstimate(
     data.presentationSlides = {
       about: estimate.presentationSlides.about === true,
       recognition: estimate.presentationSlides.recognition === true,
+      kiosk: estimate.presentationSlides.kiosk === true,
     };
   }
   if (estimate.isDraft !== undefined) {

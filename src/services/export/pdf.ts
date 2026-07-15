@@ -12,7 +12,12 @@ import {
 } from '../../utils/calculator';
 import { AVERS_LOGO } from '../../utils/clientLogo';
 import { loadThemeColors } from '../../utils/personalization';
-import { ensurePresentationSlideAssets } from '../presentationSlides';
+import { loadPresentationSlidesLibrary } from '../presentationSlides';
+import { buildStandardSlideHtml, standardSlideCss } from '../../components/slides/slideTemplate';
+import {
+  createDefaultSlidesLibrary,
+  type PresentationSlidesLibrary,
+} from '../../utils/presentationSlides';
 
 /** Brand estimate accents — aligned with web `--color-estimate-rule`. */
 const BRAND_RED = '#ef4444';
@@ -40,14 +45,8 @@ export interface PdfExportOptions {
     fullName: string;
     position: string;
   };
-  /** Resolved slide images (defaults + Firestore overrides). */
-  slideAssets?: {
-    aboutImageSrc: string;
-    recognitionImageSrc: string;
-    qrImageSrc: string;
-    aboutIsCustom?: boolean;
-    recognitionIsCustom?: boolean;
-  };
+  /** Full slides library (defaults + Firestore content). */
+  slidesLibrary?: PresentationSlidesLibrary;
 }
 
 export function pdfStyles(): string {
@@ -343,229 +342,8 @@ export function pdfStyles(): string {
       color: ${c.textMuted};
     }
 
-    /* Presentation slides (KP constructor) */
-    .pdf-page-slide {
-      width: 1123px;
-      height: 794px;
-      position: relative;
-      box-sizing: border-box;
-      padding: 56px 72px;
-      background: #ffffff;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      overflow: hidden;
-      font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
-      color: #0f172a;
-    }
-    .slide-decor-top-left,
-    .slide-decor-bottom-right {
-      position: absolute;
-      width: 36px;
-      height: 36px;
-      pointer-events: none;
-    }
-    .slide-decor-top-left {
-      top: 28px;
-      left: 28px;
-      background: #0052cc;
-      box-shadow: 10px 10px 0 0 #0f172a;
-    }
-    .slide-decor-bottom-right {
-      bottom: 28px;
-      right: 28px;
-      background: #0052cc;
-      box-shadow: -10px -10px 0 0 #0f172a;
-    }
-    .slide-title {
-      font-size: 26px;
-      font-weight: 800;
-      color: #0f172a;
-      text-transform: uppercase;
-      margin: 0 0 12px 0;
-      letter-spacing: -0.4px;
-      line-height: 1.15;
-    }
-    .slide-divider {
-      height: 3px;
-      background: #0052cc;
-      width: 100%;
-      margin-bottom: 22px;
-      position: relative;
-    }
-    .slide-divider::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: -4px;
-      width: 10px;
-      height: 10px;
-      background: #0052cc;
-    }
-    .slide-content-grid {
-      display: grid;
-      grid-template-columns: 1.15fr 1fr;
-      gap: 36px;
-      align-items: center;
-      flex: 1;
-      min-height: 0;
-    }
-    .slide-text-col {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-    }
-    .slide-lead {
-      font-size: 14px;
-      line-height: 1.55;
-      color: #334155;
-      margin: 0 0 18px 0;
-    }
-    .slide-sub-title,
-    .slide-product-name {
-      font-size: 13px;
-      font-weight: 700;
-      color: #0f172a;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin: 0 0 12px 0;
-    }
-    .slide-list-items {
-      padding-left: 18px;
-      margin: 0;
-      list-style: disc;
-    }
-    .slide-list-items li {
-      font-size: 13px;
-      color: #334155;
-      margin-bottom: 7px;
-      line-height: 1.4;
-    }
-    .slide-image-col {
-      height: 360px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
-    .slide-image-frame {
-      position: relative;
-      width: 100%;
-      height: 100%;
-    }
-    .slide-image-frame__corner {
-      position: absolute;
-      width: 22px;
-      height: 22px;
-      z-index: 2;
-    }
-    .slide-image-frame__corner--tl {
-      top: -8px;
-      left: -8px;
-      background: #0052cc;
-    }
-    .slide-image-frame__corner--br {
-      bottom: -8px;
-      right: -8px;
-      background: #0052cc;
-    }
-    .slide-image-frame__bracket {
-      position: absolute;
-      width: 28px;
-      height: 28px;
-      z-index: 2;
-    }
-    .slide-image-frame__bracket--tr {
-      top: -6px;
-      right: -6px;
-      border-top: 3px solid #0f172a;
-      border-right: 3px solid #0f172a;
-    }
-    .slide-image-frame__bracket--bl {
-      bottom: -6px;
-      left: -6px;
-      border-bottom: 3px solid #0f172a;
-      border-left: 3px solid #0f172a;
-    }
-    .slide-img-placeholder {
-      width: 100%;
-      height: 100%;
-      background-color: #e2e8f0;
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    .slide-img-photo {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    /* Crop default mockup slides to the photo region on the right */
-    .slide-img-photo--dev-default {
-      object-position: 92% 48%;
-      transform: scale(2.35);
-      transform-origin: 92% 48%;
-      filter: grayscale(1) contrast(1.05);
-    }
-    .slide-img-photo--kiosk-default {
-      object-position: 88% 45%;
-      transform: scale(2.1);
-      transform-origin: 88% 45%;
-    }
-    .slide-badge-ai {
-      display: inline-block;
-      align-self: flex-start;
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      color: #166534;
-      padding: 7px 12px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 500;
-      margin-bottom: 12px;
-      line-height: 1.35;
-      max-width: 92%;
-    }
-    .slide-disclaimer {
-      font-size: 10px;
-      color: #94a3b8;
-      font-style: italic;
-      margin: -12px 0 16px 0;
-      line-height: 1.35;
-    }
-    .qr-code-block {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-top: 22px;
-      padding: 10px 12px;
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      border-radius: 10px;
-      max-width: 340px;
-    }
-    .qr-placeholder {
-      width: 64px;
-      height: 64px;
-      border: 1px solid #86efac;
-      border-radius: 6px;
-      background: #fff;
-      padding: 3px;
-      flex-shrink: 0;
-      box-sizing: border-box;
-    }
-    .qr-placeholder img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: block;
-    }
-    .qr-code-block p {
-      font-size: 11px;
-      color: #166534;
-      line-height: 1.35;
-      margin: 0;
-    }
+    /* Presentation slides — standard KP layout */
+    ${standardSlideCss()}
   `;
 }
 
@@ -830,117 +608,8 @@ function buildDocumentPage(
   `;
 }
 
-function resolveSlideAssetsForPdf(options: PdfExportOptions) {
-  if (options.slideAssets) return options.slideAssets;
-  // Lazy import avoided — callers should pass slideAssets after ensurePresentationSlideAssets().
-  return {
-    aboutImageSrc: resolveAbsoluteUrl(`${import.meta.env.BASE_URL}assets/slides/dev-team.png`),
-    recognitionImageSrc: resolveAbsoluteUrl(
-      `${import.meta.env.BASE_URL}assets/slides/smart-kassa.png`
-    ),
-    qrImageSrc: resolveAbsoluteUrl(`${import.meta.env.BASE_URL}assets/slides/qr-video.png`),
-    aboutIsCustom: false,
-    recognitionIsCustom: false,
-  };
-}
-
-function buildAboutSlideHtml(options: PdfExportOptions): string {
-  const assets = resolveSlideAssetsForPdf(options);
-  const aboutSrc = resolveAbsoluteUrl(assets.aboutImageSrc);
-  const photoClass = assets.aboutIsCustom
-    ? 'slide-img-photo'
-    : 'slide-img-photo slide-img-photo--dev-default';
-
-  return `
-    <div class="pdf-page pdf-page-slide" id="pdf-slide-about-view" data-slide="about">
-      <div class="slide-decor-top-left"></div>
-      <div class="slide-decor-bottom-right"></div>
-
-      <h2 class="slide-title">Команда разработки Аверс Технолоджи</h2>
-      <div class="slide-divider"></div>
-
-      <div class="slide-content-grid">
-        <div class="slide-text-col">
-          <p class="slide-lead">Наша компания специализируется на разработке информационных систем для сферы общепита и автоматизации ритейла. Мы обладаем глубокой экспертизой и готовы реализовать проект любой сложности.</p>
-
-          <h3 class="slide-sub-title">Наши решения:</h3>
-          <ul class="slide-list-items">
-            <li>Кассовый модуль для кассиров и POS-системы</li>
-            <li>Личный кабинет гостя и программы лояльности</li>
-            <li>WEB-приложения для онлайн-заказа блюд</li>
-            <li>Система распознавания еды в столовых на базе AI</li>
-            <li>Интерактивные киоски самообслуживания</li>
-            <li>Системы анализа обратной связи на основе ИИ</li>
-          </ul>
-        </div>
-
-        <div class="slide-image-col">
-          <div class="slide-image-frame">
-            <div class="slide-image-frame__corner slide-image-frame__corner--tl"></div>
-            <div class="slide-image-frame__bracket slide-image-frame__bracket--tr"></div>
-            <div class="slide-image-frame__bracket slide-image-frame__bracket--bl"></div>
-            <div class="slide-image-frame__corner slide-image-frame__corner--br"></div>
-            <div class="slide-img-placeholder">
-              <img class="${photoClass}" src="${aboutSrc}" alt="Команда разработки" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function buildRecognitionSlideHtml(options: PdfExportOptions): string {
-  const assets = resolveSlideAssetsForPdf(options);
-  const kioskSrc = resolveAbsoluteUrl(assets.recognitionImageSrc);
-  const qrUrl = resolveAbsoluteUrl(assets.qrImageSrc);
-  const photoClass = assets.recognitionIsCustom
-    ? 'slide-img-photo'
-    : 'slide-img-photo slide-img-photo--kiosk-default';
-
-  return `
-    <div class="pdf-page pdf-page-slide" id="pdf-slide-recognition-view" data-slide="recognition">
-      <div class="slide-decor-top-left"></div>
-      <div class="slide-decor-bottom-right"></div>
-
-      <div class="slide-badge-ai">Основано на компьютерном зрении и алгоритмах искусственного интеллекта (AI)</div>
-      <h2 class="slide-title">Система распознавания еды</h2>
-      <div class="slide-divider"></div>
-      <p class="slide-disclaimer">*Обратите внимание: внешний вид интерфейса и конкретные модели оборудования могут отличаться от представленных в КП.</p>
-
-      <div class="slide-content-grid">
-        <div class="slide-text-col">
-          <h3 class="slide-product-name">Умная касса</h3>
-          <ul class="slide-list-items">
-            <li>Сокращает расходы на содержание кассовых точек</li>
-            <li>Исключает мошенничество и человеческий фактор при расчётах</li>
-            <li>Работает 24/7 без перерывов и больничных</li>
-            <li>Скорость распознавания блюд на подносе — менее 1 сек.</li>
-            <li>Точность распознавания нейросетью — 99.9%</li>
-          </ul>
-
-          <div class="qr-code-block">
-            <div class="qr-placeholder">
-              <img src="${qrUrl}" alt="QR-код" />
-            </div>
-            <p>Отсканируйте QR-код, чтобы посмотреть видео работы умной кассы вживую</p>
-          </div>
-        </div>
-
-        <div class="slide-image-col">
-          <div class="slide-image-frame">
-            <div class="slide-image-frame__corner slide-image-frame__corner--tl"></div>
-            <div class="slide-image-frame__bracket slide-image-frame__bracket--tr"></div>
-            <div class="slide-image-frame__bracket slide-image-frame__bracket--bl"></div>
-            <div class="slide-image-frame__corner slide-image-frame__corner--br"></div>
-            <div class="slide-img-placeholder">
-              <img class="${photoClass}" src="${kioskSrc}" alt="Умная касса" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+function resolveSlidesLibrary(options: PdfExportOptions): PresentationSlidesLibrary {
+  return options.slidesLibrary ?? createDefaultSlidesLibrary();
 }
 
 /** Selected marketing slides rendered as separate landscape pages before the estimate table. */
@@ -951,9 +620,11 @@ export function buildPresentationSlidesHtml(
   const selected = estimate.presentationSlides;
   if (!selected) return '';
 
+  const library = resolveSlidesLibrary(options);
   const parts: string[] = [];
-  if (selected.about) parts.push(buildAboutSlideHtml(options));
-  if (selected.recognition) parts.push(buildRecognitionSlideHtml(options));
+  if (selected.about) parts.push(buildStandardSlideHtml('about', library.about));
+  if (selected.recognition) parts.push(buildStandardSlideHtml('recognition', library.recognition));
+  if (selected.kiosk) parts.push(buildStandardSlideHtml('kiosk', library.kiosk));
   return parts.join('');
 }
 
@@ -1038,10 +709,11 @@ async function renderPageToPdf(
 export async function exportToPdf(estimate: Estimate, options: PdfExportOptions = {}): Promise<void> {
   const hasSlides =
     estimate.presentationSlides?.about === true ||
-    estimate.presentationSlides?.recognition === true;
+    estimate.presentationSlides?.recognition === true ||
+    estimate.presentationSlides?.kiosk === true;
 
-  const slideAssets = options.slideAssets ?? (await ensurePresentationSlideAssets());
-  const resolvedOptions: PdfExportOptions = { ...options, slideAssets };
+  const slidesLibrary = options.slidesLibrary ?? (await loadPresentationSlidesLibrary());
+  const resolvedOptions: PdfExportOptions = { ...options, slidesLibrary };
 
   const container = document.createElement('div');
   container.style.position = 'fixed';

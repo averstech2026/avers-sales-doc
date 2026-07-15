@@ -45,7 +45,7 @@ export function createNewEstimate(
     sections: createDefaultSections(),
     rates: DEFAULT_RATES(),
     clientLogoId: 'none',
-    presentationSlides: { about: false, recognition: false },
+    presentationSlides: { about: false, recognition: false, kiosk: false },
     isDraft: true,
     createdAt: now,
     updatedAt: now,
@@ -84,6 +84,7 @@ export function buildDuplicateEstimate(source: Estimate): Estimate {
     presentationSlides: {
       about: source.presentationSlides?.about === true,
       recognition: source.presentationSlides?.recognition === true,
+      kiosk: source.presentationSlides?.kiosk === true,
     },
     isDraft: true,
     createdAt: now,

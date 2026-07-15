@@ -1,31 +1,16 @@
 import type { Estimate, PresentationSlideId, PresentationSlides } from '../../types';
+import { PRESENTATION_SLIDE_DEFS } from '../../utils/presentationSlides';
 
 interface PresentationSlidesSelectorProps {
   estimate: Estimate;
   onChange: (patch: Partial<Estimate>) => void;
 }
 
-const SLIDE_OPTIONS: Array<{
-  id: PresentationSlideId;
-  title: string;
-  description: string;
-}> = [
-  {
-    id: 'about',
-    title: 'Слайд «О компании»',
-    description: 'Команда разработки, ключевые решения и экспертиза Аверс Технолоджи.',
-  },
-  {
-    id: 'recognition',
-    title: 'Слайд «Распознавание еды»',
-    description: 'Презентация ИИ-технологии Умной Кассы для столовых.',
-  },
-];
-
 function getSlides(estimate: Estimate): PresentationSlides {
   return {
     about: estimate.presentationSlides?.about === true,
     recognition: estimate.presentationSlides?.recognition === true,
+    kiosk: estimate.presentationSlides?.kiosk === true,
   };
 }
 
@@ -52,7 +37,7 @@ export function PresentationSlidesSelector({
         таблицей расчётов.
       </p>
       <div className="presentation-slides-selector__grid">
-        {SLIDE_OPTIONS.map((opt) => {
+        {PRESENTATION_SLIDE_DEFS.map((opt) => {
           const checked = slides[opt.id];
           return (
             <label
@@ -64,11 +49,11 @@ export function PresentationSlidesSelector({
                 className="slide-checkbox"
                 checked={checked}
                 onChange={() => toggle(opt.id)}
-                aria-label={opt.title}
+                aria-label={opt.menuTitle}
               />
               <div>
-                <span className="slide-checkbox-card__title">{opt.title}</span>
-                <span className="slide-checkbox-card__desc">{opt.description}</span>
+                <span className="slide-checkbox-card__title">Слайд «{opt.menuTitle}»</span>
+                <span className="slide-checkbox-card__desc">{opt.menuDescription}</span>
               </div>
             </label>
           );

@@ -3,64 +3,37 @@ import { getDb, isFirebaseConfigured } from '../firebase';
 import { COLLECTIONS } from '../constants/roles';
 import {
   PRESENTATION_SLIDES_SETTINGS_DOC,
-  resolveSlideAssets,
-  type PresentationSlideOverrides,
-  type ResolvedSlideAssets,
+  createDefaultSlidesLibrary,
+  normalizeSlidesLibrary,
+  type PresentationSlideContent,
+  type PresentationSlideId,
+  type PresentationSlidesLibrary,
 } from '../utils/presentationSlides';
 
-let cachedOverrides: PresentationSlideOverrides | null = null;
-let loadPromise: Promise<PresentationSlideOverrides | null> | null = null;
+let cachedLibrary: PresentationSlidesLibrary | null = null;
+let loadPromise: Promise<PresentationSlidesLibrary | null> | null = null;
 
-function emptyOverrides(): PresentationSlideOverrides {
-  return {
-    aboutImageDataUrl: null,
-    recognitionImageDataUrl: null,
-    qrImageDataUrl: null,
-  };
+export function getCachedSlidesLibrary(): PresentationSlidesLibrary | null {
+  return cachedLibrary;
 }
 
-function normalizeOverrides(raw: Record<string, unknown> | null): PresentationSlideOverrides {
-  if (!raw) return emptyOverrides();
-  return {
-    aboutImageDataUrl:
-      typeof raw.aboutImageDataUrl === 'string' && raw.aboutImageDataUrl.trim()
-        ? raw.aboutImageDataUrl
-        : null,
-    recognitionImageDataUrl:
-      typeof raw.recognitionImageDataUrl === 'string' && raw.recognitionImageDataUrl.trim()
-        ? raw.recognitionImageDataUrl
-        : null,
-    qrImageDataUrl:
-      typeof raw.qrImageDataUrl === 'string' && raw.qrImageDataUrl.trim()
-        ? raw.qrImageDataUrl
-        : null,
-    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : undefined,
-    updatedByUid: typeof raw.updatedByUid === 'string' ? raw.updatedByUid : undefined,
-    updatedByName: typeof raw.updatedByName === 'string' ? raw.updatedByName : undefined,
-  };
+export function getSlidesLibrarySync(): PresentationSlidesLibrary {
+  return cachedLibrary ?? createDefaultSlidesLibrary();
 }
 
-export function getCachedSlideOverrides(): PresentationSlideOverrides | null {
-  return cachedOverrides;
-}
-
-export function getResolvedSlideAssetsSync(): ResolvedSlideAssets {
-  return resolveSlideAssets(cachedOverrides);
-}
-
-export async function loadPresentationSlideOverrides(
+export async function loadPresentationSlidesLibrary(
   force = false
-): Promise<PresentationSlideOverrides> {
-  if (!force && cachedOverrides) return cachedOverrides;
+): Promise<PresentationSlidesLibrary> {
+  if (!force && cachedLibrary) return cachedLibrary;
   if (!force && loadPromise) {
     const pending = await loadPromise;
-    return pending ?? emptyOverrides();
+    return pending ?? createDefaultSlidesLibrary();
   }
 
   loadPromise = (async () => {
     if (!isFirebaseConfigured()) {
-      cachedOverrides = emptyOverrides();
-      return cachedOverrides;
+      cachedLibrary = createDefaultSlidesLibrary();
+      return cachedLibrary;
     }
 
     try {
@@ -68,49 +41,98 @@ export async function loadPresentationSlideOverrides(
       const snap = await getDoc(
         doc(db, COLLECTIONS.settings, PRESENTATION_SLIDES_SETTINGS_DOC)
       );
-      cachedOverrides = snap.exists()
-        ? normalizeOverrides(snap.data() as Record<string, unknown>)
-        : emptyOverrides();
-      return cachedOverrides;
+      cachedLibrary = snap.exists()
+        ? normalizeSlidesLibrary(snap.data() as Record<string, unknown>)
+        : createDefaultSlidesLibrary();
+      return cachedLibrary;
     } catch {
-      cachedOverrides = emptyOverrides();
-      return cachedOverrides;
+      cachedLibrary = createDefaultSlidesLibrary();
+      return cachedLibrary;
     } finally {
       loadPromise = null;
     }
   })();
 
-  return (await loadPromise) ?? emptyOverrides();
+  return (await loadPromise) ?? createDefaultSlidesLibrary();
 }
 
-export async function ensurePresentationSlideAssets(): Promise<ResolvedSlideAssets> {
-  const overrides = await loadPresentationSlideOverrides();
-  return resolveSlideAssets(overrides);
+/** @deprecated Use loadPresentationSlidesLibrary — kept for older call sites */
+export async function loadPresentationSlideOverrides(force = false) {
+  return loadPresentationSlidesLibrary(force);
 }
 
-export async function savePresentationSlideOverrides(
-  overrides: PresentationSlideOverrides,
+export async function ensurePresentationSlideAssets() {
+  const library = await loadPresentationSlidesLibrary();
+  return library;
+}
+
+export async function savePresentationSlide(
+  id: PresentationSlideId,
+  content: PresentationSlideContent,
   meta?: { uid?: string; name?: string }
-): Promise<PresentationSlideOverrides> {
+): Promise<PresentationSlidesLibrary> {
   if (!isFirebaseConfigured()) {
     throw new Error('Firebase не настроен');
   }
 
+  const current = await loadPresentationSlidesLibrary();
   const now = new Date().toISOString();
-  const data: PresentationSlideOverrides = {
-    aboutImageDataUrl: overrides.aboutImageDataUrl?.trim() || null,
-    recognitionImageDataUrl: overrides.recognitionImageDataUrl?.trim() || null,
-    qrImageDataUrl: overrides.qrImageDataUrl?.trim() || null,
+  const next: PresentationSlidesLibrary = {
+    ...current,
+    [id]: content,
     updatedAt: now,
     updatedByUid: meta?.uid,
     updatedByName: meta?.name,
   };
 
   const db = getDb();
-  await setDoc(doc(db, COLLECTIONS.settings, PRESENTATION_SLIDES_SETTINGS_DOC), data, {
-    merge: true,
+  await setDoc(
+    doc(db, COLLECTIONS.settings, PRESENTATION_SLIDES_SETTINGS_DOC),
+    {
+      slides: {
+        about: next.about,
+        recognition: next.recognition,
+        kiosk: next.kiosk,
+      },
+      updatedAt: now,
+      updatedByUid: meta?.uid ?? null,
+      updatedByName: meta?.name ?? null,
+    },
+    { merge: true }
+  );
+
+  cachedLibrary = next;
+  return next;
+}
+
+export async function savePresentationSlidesLibrary(
+  library: PresentationSlidesLibrary,
+  meta?: { uid?: string; name?: string }
+): Promise<PresentationSlidesLibrary> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase не настроен');
+  }
+
+  const now = new Date().toISOString();
+  const next: PresentationSlidesLibrary = {
+    ...library,
+    updatedAt: now,
+    updatedByUid: meta?.uid,
+    updatedByName: meta?.name,
+  };
+
+  const db = getDb();
+  await setDoc(doc(db, COLLECTIONS.settings, PRESENTATION_SLIDES_SETTINGS_DOC), {
+    slides: {
+      about: next.about,
+      recognition: next.recognition,
+      kiosk: next.kiosk,
+    },
+    updatedAt: now,
+    updatedByUid: meta?.uid ?? null,
+    updatedByName: meta?.name ?? null,
   });
 
-  cachedOverrides = data;
-  return data;
+  cachedLibrary = next;
+  return next;
 }
