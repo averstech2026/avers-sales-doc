@@ -62,12 +62,44 @@ export function pdfStyles(): string {
     }
     .pdf-header {
       display: flex;
-      justify-content: space-between;
-      align-items: stretch;
-      gap: 32px;
-      border-bottom: 1px solid ${c.border};
+      flex-direction: column;
+      border-bottom: 1.5px solid ${c.accent};
       padding-bottom: 24px;
       margin-bottom: 24px;
+    }
+    .pdf-document-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .pdf-main-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+      margin: 0;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+    .pdf-doc-date {
+      font-size: 13px;
+      color: ${c.textMuted};
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .pdf-header-divider {
+      height: 1px;
+      background-color: #f1f5f9;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .pdf-parties-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 32px;
     }
     .pdf-header-column {
       display: flex;
@@ -84,18 +116,17 @@ export function pdfStyles(): string {
       text-align: right;
     }
     .column-meta-label {
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 600;
       color: #94a3b8;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: 12px;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
       display: block;
     }
     .brand-info-block {
       display: flex;
       flex-direction: column;
-      margin-bottom: 16px;
     }
     .pdf-header-column.left .brand-info-block {
       align-items: flex-start;
@@ -104,10 +135,10 @@ export function pdfStyles(): string {
       align-items: flex-end;
     }
     .logo-wrapper-pdf {
-      height: 32px;
+      height: 28px;
       display: flex;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .pdf-header-column.right .logo-wrapper-pdf {
       justify-content: flex-end;
@@ -124,37 +155,12 @@ export function pdfStyles(): string {
       font-weight: 600;
       color: #1e293b;
     }
-    .document-meta-pdf {
-      margin-top: auto;
-      display: flex;
-      flex-direction: column;
-    }
-    .pdf-header-column.left .document-meta-pdf {
-      align-items: flex-start;
-    }
-    .pdf-header-column.right .document-meta-pdf {
-      align-items: flex-end;
-    }
-    .pdf-main-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #0f172a;
-      text-transform: none;
-      letter-spacing: -0.2px;
-      margin: 0 0 2px;
-      line-height: 1.3;
-    }
-    .pdf-doc-date {
+    .project-meta-pdf {
+      margin-top: 6px;
       font-size: 12px;
-      color: ${c.textMuted};
-      margin: 0;
     }
-    .pdf-project-title {
-      font-size: 14px;
-      font-weight: 400;
+    .project-label {
       color: ${c.textMuted};
-      margin: 4px 0 0;
-      line-height: 1.3;
     }
     .project-highlight {
       color: #0f172a;
@@ -614,27 +620,31 @@ function buildPageHeaderHtml(estimate: Estimate, clientLogoSrc: string | null): 
 
   return `
     <div class="pdf-header">
-      <div class="pdf-header-column left">
-        <span class="column-meta-label">ОТПРАВИТЕЛЬ:</span>
-        <div class="brand-info-block">
-          <div class="logo-wrapper-pdf">
-            ${pdfLogoImg(aversLogo, 'Avers Technology', 'brand-logo-pdf')}
-          </div>
-          <div class="company-name-pdf">ООО «Аверс Технолоджи»</div>
-        </div>
-        <div class="document-meta-pdf">
-          <h1 class="pdf-main-title">Коммерческое предложение</h1>
-          <p class="pdf-doc-date">от ${formatDate(estimate.updatedAt)}</p>
-        </div>
+      <div class="pdf-document-title-row">
+        <h1 class="pdf-main-title">Коммерческое предложение</h1>
+        <span class="pdf-doc-date">от ${formatDate(estimate.updatedAt)}</span>
       </div>
-      <div class="pdf-header-column right">
-        <span class="column-meta-label">ПОДГОТОВЛЕНО ДЛЯ:</span>
-        <div class="brand-info-block">
-          <div class="logo-wrapper-pdf">${clientLogoImg}</div>
-          <div class="company-name-pdf">${escapeHtml(clientName)}</div>
+      <div class="pdf-header-divider"></div>
+      <div class="pdf-parties-row">
+        <div class="pdf-header-column left">
+          <span class="column-meta-label">ОТПРАВИТЕЛЬ:</span>
+          <div class="brand-info-block">
+            <div class="logo-wrapper-pdf">
+              ${pdfLogoImg(aversLogo, 'Avers Technology', 'brand-logo-pdf')}
+            </div>
+            <div class="company-name-pdf">ООО «Аверс Технолоджи»</div>
+          </div>
         </div>
-        <div class="document-meta-pdf">
-          <h2 class="pdf-project-title">Проект: <span class="project-highlight">${escapeHtml(estimate.projectName)}</span></h2>
+        <div class="pdf-header-column right">
+          <span class="column-meta-label">ПОДГОТОВЛЕНО ДЛЯ:</span>
+          <div class="brand-info-block">
+            <div class="logo-wrapper-pdf">${clientLogoImg}</div>
+            <div class="company-name-pdf">${escapeHtml(clientName)}</div>
+          </div>
+          <div class="project-meta-pdf">
+            <span class="project-label">Проект:</span>
+            <span class="project-highlight">${escapeHtml(estimate.projectName)}</span>
+          </div>
         </div>
       </div>
     </div>
