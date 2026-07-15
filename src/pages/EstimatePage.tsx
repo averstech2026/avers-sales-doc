@@ -15,7 +15,7 @@ import { calculateEstimateTotals } from '../utils/calculator';
 import { resolveEstimateClientLogo } from '../utils/clientLogo';
 import { deleteEstimate, getShareUrl, loadEstimate, saveEstimate } from '../services/firestore';
 import { exportToExcel } from '../services/export/excel';
-import { exportToPdf } from '../services/export/pdf';
+import { PdfPreviewModal } from '../components/estimate/PdfPreviewModal';
 import { resolveEstimateCreatorName } from '../services/auth';
 import { useAuth } from '../context/AuthContext';
 import type { Estimate } from '../types';
@@ -35,9 +35,10 @@ export function EstimatePage() {
   const [showRates, setShowRates] = useState(false);
   const [showAi, setShowAi] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [toast, setToast] = useState('');
-  const [exporting, setExporting] = useState<'pdf' | 'excel' | null>(null);
+  const [exporting, setExporting] = useState<'excel' | null>(null);
 
   const { user, firebaseReady } = useAuth();
   const totals = useMemo(() => calculateEstimateTotals(estimate), [estimate]);
@@ -152,26 +153,26 @@ export function EstimatePage() {
     }
   };
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = () => {
     if (!user) {
       showToast('Войдите в аккаунт для экспорта');
       return;
     }
-    setExporting('pdf');
-    try {
-      await exportToPdf(estimate, {
-        clientLogoSrc: resolveEstimateClientLogo(estimate),
-        signature: {
-          fullName: user.fullName,
-          position: user.position,
-        },
-      });
-    } catch {
-      showToast('Ошибка экспорта PDF');
-    } finally {
-      setExporting(null);
-    }
+    setShowPdfPreview(true);
   };
+
+  const pdfExportOptions = useMemo(
+    () => ({
+      clientLogoSrc: resolveEstimateClientLogo(estimate),
+      signature: user
+        ? {
+            fullName: user.fullName,
+            position: user.position,
+          }
+        : undefined,
+    }),
+    [estimate, user]
+  );
 
   const handleExportExcel = async () => {
     setExporting('excel');
@@ -248,7 +249,7 @@ export function EstimatePage() {
             onClick={handleExportPdf}
             disabled={!!exporting}
           >
-            {exporting === 'pdf' ? '…' : 'PDF'}
+            PDF
           </button>
           <button
             type="button"
@@ -336,6 +337,15 @@ export function EstimatePage() {
           </button>
         </div>
       </Modal>
+
+      <PdfPreviewModal
+        open={showPdfPreview}
+        estimate={estimate}
+        options={pdfExportOptions}
+        onClose={() => setShowPdfPreview(false)}
+        onExported={() => showToast('PDF сохранён')}
+        onError={() => showToast('Ошибка экспорта PDF')}
+      />
     </div>
   );
 }

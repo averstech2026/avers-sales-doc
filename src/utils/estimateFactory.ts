@@ -45,6 +45,7 @@ export function createNewEstimate(
     sections: createDefaultSections(),
     rates: DEFAULT_RATES(),
     clientLogoId: 'none',
+    presentationSlides: { about: false, recognition: false },
     isDraft: true,
     createdAt: now,
     updatedAt: now,
@@ -72,7 +73,7 @@ export function buildDuplicateEstimate(source: Estimate): Estimate {
       })),
     })),
     rates: { ...source.rates },
-    clientLogoId: source.clientLogoId ?? 'none',
+    clientLogoId: source.clientLogoId === 'custom' ? 'custom' : 'none',
     ...(source.clientLogoCustom !== undefined
       ? { clientLogoCustom: source.clientLogoCustom }
       : {}),
@@ -80,6 +81,10 @@ export function buildDuplicateEstimate(source: Estimate): Estimate {
     ...(source.contractTemplateId !== undefined
       ? { contractTemplateId: source.contractTemplateId }
       : {}),
+    presentationSlides: {
+      about: source.presentationSlides?.about === true,
+      recognition: source.presentationSlides?.recognition === true,
+    },
     isDraft: true,
     createdAt: now,
     updatedAt: now,

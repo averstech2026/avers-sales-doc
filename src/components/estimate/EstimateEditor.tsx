@@ -16,6 +16,8 @@ import {
 } from '../../utils/calculator';
 
 import { EstimateLogoSettings } from './EstimateLogoSettings';
+import { PresentationSlidesSelector } from './PresentationSlidesSelector';
+import { ClientCompanyPicker } from './ClientCompanyPicker';
 
 
 
@@ -241,7 +243,7 @@ export function EstimateEditor({ estimate, onChange }: EstimateEditorProps) {
 
       <div className="estimate-editor__meta">
 
-        <label className="field">
+        <label className="field field--wide">
 
           <span>Название проекта</span>
 
@@ -257,27 +259,21 @@ export function EstimateEditor({ estimate, onChange }: EstimateEditorProps) {
 
         </label>
 
-        <label className="field">
+        <div className="field--wide">
 
-          <span>Заказчик</span>
+          <ClientCompanyPicker estimate={estimate} onChange={update} />
 
-          <input
-
-            type="text"
-
-            value={estimate.clientName}
-
-            onChange={(e) => update({ clientName: e.target.value })}
-
-            placeholder="ООО «ВЗЛП»"
-
-          />
-
-        </label>
+        </div>
 
         <div className="field field--wide personalization-section">
 
           <EstimateLogoSettings estimate={estimate} onChange={update} />
+
+        </div>
+
+        <div className="field field--wide">
+
+          <PresentationSlidesSelector estimate={estimate} onChange={update} />
 
         </div>
 
@@ -564,8 +560,10 @@ interface TaskRowProps {
 
 function TaskRow({ task, rates, onTaskChange, onHoursChange, onRemove }: TaskRowProps) {
   const hasDescription = Boolean(task.description.trim());
-  const [descOpen, setDescOpen] = useState(hasDescription);
+  const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [descDraft, setDescDraft] = useState(task.description);
   const titleRef = useRef<HTMLTextAreaElement>(null);
+  const descInputRef = useRef<HTMLTextAreaElement>(null);
 
   const resizeTitleField = useCallback(() => {
     const field = titleRef.current;
@@ -574,24 +572,63 @@ function TaskRow({ task, rates, onTaskChange, onHoursChange, onRemove }: TaskRow
     field.style.height = `${field.scrollHeight}px`;
   }, []);
 
-  useEffect(() => {
-    setDescOpen(Boolean(task.description.trim()));
-  }, [task.id]);
+  const resizeDescField = useCallback(() => {
+    const field = descInputRef.current;
+    if (!field) return;
+    field.style.height = 'auto';
+    field.style.height = `${field.scrollHeight}px`;
+  }, []);
 
   useEffect(() => {
-    if (task.description.trim()) {
-      setDescOpen(true);
-    }
-  }, [task.description]);
+    setIsEditingDesc(false);
+    setDescDraft(task.description);
+  }, [task.id]);
 
   useEffect(() => {
     resizeTitleField();
   }, [task.name, resizeTitleField]);
 
+  useEffect(() => {
+    if (!isEditingDesc) {
+      setDescDraft(task.description);
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      resizeDescField();
+      descInputRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isEditingDesc, task.description, resizeDescField]);
+
+  const showDescription = isEditingDesc || hasDescription;
+
+  const handleToggleDesc = () => {
+    if (isEditingDesc) {
+      setDescDraft(task.description);
+      setIsEditingDesc(false);
+      return;
+    }
+    setDescDraft(task.description);
+    setIsEditingDesc(true);
+  };
+
+  const handleSaveDesc = () => {
+    onTaskChange({ description: descDraft });
+    setIsEditingDesc(false);
+  };
+
+  const handleCancelDesc = () => {
+    setDescDraft(task.description);
+    setIsEditingDesc(false);
+  };
+
   return (
-    <div className={`estimate-row-grid estimate-table__task-row${descOpen ? ' estimate-table__task-row--expanded' : ''}`} role="row">
-      <div className="estimate-grid__task task-name-cell" role="cell">
-        <div className="task-main-row">
+    <div
+      className={`estimate-row-grid estimate-table__task-row${showDescription ? ' estimate-table__task-row--expanded' : ''}`}
+      role="row"
+    >
+      <div className="estimate-grid__task task-info-col" role="cell">
+        <div className="task-title-container" role="group" aria-label="Название задачи">
           <textarea
             ref={titleRef}
             className="inline-input task-title-input"
@@ -603,31 +640,47 @@ function TaskRow({ task, rates, onTaskChange, onHoursChange, onRemove }: TaskRow
               if (e.key === 'Enter') e.preventDefault();
             }}
             placeholder="Название задачи"
+            aria-label="Название задачи"
           />
           <button
             type="button"
-            className={`btn-toggle-description${descOpen ? ' is-active' : ''}`}
-            onClick={() => setDescOpen((open) => !open)}
-            title="Добавить/изменить описание"
-            aria-label="Добавить или изменить описание задачи"
-            aria-expanded={descOpen}
+            className={`btn-toggle-description${showDescription ? ' is-active' : ''}`}
+            onClick={handleToggleDesc}
+            title="Добавить/редактировать примечание"
+            aria-label="Добавить или изменить примечание к задаче"
+            aria-expanded={isEditingDesc}
           >
             📝
           </button>
         </div>
-        <div className={`task-description-wrapper${descOpen ? ' is-visible' : ''}`}>
-          <textarea
-            className="task-desc-input"
-            rows={2}
-            value={task.description}
-            onChange={(e) => onTaskChange({ description: e.target.value })}
-            placeholder="Добавьте подробное описание задачи, если необходимо..."
-          />
-        </div>
+        {showDescription &&
+          (isEditingDesc ? (
+            <div className="task-description-editor">
+              <textarea
+                ref={descInputRef}
+                className="task-desc-input"
+                rows={2}
+                value={descDraft}
+                onChange={(e) => setDescDraft(e.target.value)}
+                onInput={resizeDescField}
+                placeholder="Введите примечание к задаче (например, конкретные требования или состав работ)..."
+              />
+              <div className="task-desc-actions">
+                <button type="button" className="btn-desc-save" onClick={handleSaveDesc}>
+                  Сохранить
+                </button>
+                <button type="button" className="btn-desc-cancel" onClick={handleCancelDesc}>
+                  Отмена
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="task-description-display">{task.description}</div>
+          ))}
       </div>
 
       {ROLES.map((role) => (
-        <div key={role.id} className="estimate-grid__hour" role="cell">
+        <div key={role.id} className="estimate-grid__hour task-values-col" role="cell">
           <input
             type="number"
             className="hour-input"
@@ -640,11 +693,11 @@ function TaskRow({ task, rates, onTaskChange, onHoursChange, onRemove }: TaskRow
         </div>
       ))}
 
-      <div className="estimate-grid__cost estimate-table__cost" role="cell">
+      <div className="estimate-grid__cost estimate-table__cost task-values-col" role="cell">
         {formatCurrency(calculateTaskCost(task.hours, rates))}
       </div>
 
-      <div className="estimate-grid__actions" role="cell">
+      <div className="estimate-grid__actions task-values-col" role="cell">
         <DeleteRowButton onClick={onRemove} title="Удалить задачу" />
       </div>
     </div>

@@ -269,7 +269,7 @@ export function HomePage() {
             Создайте смету с предзаполненными этапами анализа, добавьте задачи, настройте ставки и
             экспортируйте КП в PDF или Excel.
           </p>
-          <Link to="/estimate" className="btn btn--primary">
+          <Link to="/estimate" className="btn btn-save">
             Создать смету
           </Link>
         </CornerFrame>

@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import type { ClientLogoId, Estimate } from '../../types';
 import {
   CLIENT_LOGO_OPTIONS,
+  normalizeClientLogoId,
   resolveEstimateClientLogo,
 } from '../../utils/clientLogo';
 
@@ -12,7 +13,7 @@ interface EstimateLogoSettingsProps {
 
 export function EstimateLogoSettings({ estimate, onChange }: EstimateLogoSettingsProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const logoId = estimate.clientLogoId ?? 'none';
+  const logoId = normalizeClientLogoId(estimate.clientLogoId);
   const previewSrc = resolveEstimateClientLogo(estimate);
 
   const handleSelect = (value: string) => {

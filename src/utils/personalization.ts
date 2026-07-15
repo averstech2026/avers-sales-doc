@@ -1,6 +1,7 @@
 export interface ThemeColors {
   sidebarBg: string;
   sidebarActive: string;
+  sidebarText: string;
   button: string;
   tableHeader: string;
   highlightBg: string;
@@ -19,6 +20,7 @@ export const COLOR_ACCENT_KEY = 'avers-color-accent';
 export const DEFAULT_THEME_COLORS: ThemeColors = {
   sidebarBg: '#7c818a',
   sidebarActive: '#db4040',
+  sidebarText: '#ffffff',
   button: '#d81818',
   tableHeader: '#7c818a',
   highlightBg: '#fceded',
@@ -288,6 +290,7 @@ export function normalizeThemeColors(colors: Partial<ThemeColors>): ThemeColors 
   return {
     sidebarBg: normalizeHex(colors.sidebarBg ?? DEFAULT_THEME_COLORS.sidebarBg, DEFAULT_THEME_COLORS.sidebarBg),
     sidebarActive: normalizeHex(colors.sidebarActive ?? DEFAULT_THEME_COLORS.sidebarActive, DEFAULT_THEME_COLORS.sidebarActive),
+    sidebarText: normalizeHex(colors.sidebarText ?? DEFAULT_THEME_COLORS.sidebarText, DEFAULT_THEME_COLORS.sidebarText),
     button: normalizeHex(colors.button ?? DEFAULT_THEME_COLORS.button, DEFAULT_THEME_COLORS.button),
     tableHeader: normalizeHex(colors.tableHeader ?? DEFAULT_THEME_COLORS.tableHeader, DEFAULT_THEME_COLORS.tableHeader),
     highlightBg: normalizeHex(colors.highlightBg ?? DEFAULT_THEME_COLORS.highlightBg, DEFAULT_THEME_COLORS.highlightBg),
@@ -315,10 +318,12 @@ export function applyThemeColors(colors: ThemeColors): void {
   document.documentElement.style.setProperty('--color-primary', theme.sidebarBg);
   document.documentElement.style.setProperty('--color-primary-dark', adjustBrightness(theme.sidebarBg, -18));
   document.documentElement.style.setProperty('--color-sidebar-active', theme.sidebarActive);
+  document.documentElement.style.setProperty('--color-sidebar-text', theme.sidebarText);
   document.documentElement.style.setProperty('--color-table-header', theme.tableHeader);
   document.documentElement.style.setProperty('--color-accent', theme.button);
   document.documentElement.style.setProperty('--color-accent-hover', adjustBrightness(theme.button, -28));
   document.documentElement.style.setProperty('--color-accent-light', theme.highlightBg);
+  document.documentElement.style.setProperty('--shadow-btn', `0 4px 14px ${hexToRgba(theme.button, 0.22)}`);
   document.documentElement.style.setProperty('--color-corner', theme.cornersAccent);
   document.documentElement.style.setProperty('--color-corner-neutral', theme.cornersNeutral);
   document.documentElement.style.setProperty('--color-save-bg', theme.saveButton);
@@ -378,6 +383,7 @@ export function themeColorsEqual(a: ThemeColors, b: ThemeColors): boolean {
   return (
     a.sidebarBg === b.sidebarBg &&
     a.sidebarActive === b.sidebarActive &&
+    a.sidebarText === b.sidebarText &&
     a.button === b.button &&
     a.tableHeader === b.tableHeader &&
     a.highlightBg === b.highlightBg &&

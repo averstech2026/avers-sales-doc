@@ -10,6 +10,7 @@ interface ImportMetaEnv {
   readonly VITE_SUPERADMIN_EMAILS?: string;
   readonly VITE_OPENAI_API_KEY?: string;
   readonly VITE_YANDEX_PARSE_URL?: string;
+  readonly VITE_DADATA_PARTY_URL?: string;
 }
 
 interface ImportMeta {

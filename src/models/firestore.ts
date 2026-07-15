@@ -6,7 +6,7 @@
 export { type Estimate, type Company, type ContractTemplate } from '../types';
 export { COLLECTIONS } from '../constants/roles';
 
-/** Default fields for a new company document (future) */
+/** Default fields for a new company document */
 export const COMPANY_DEFAULTS = {
   name: '',
   inn: '',
@@ -18,6 +18,7 @@ export const COMPANY_DEFAULTS = {
   bankName: '',
   director: '',
   directorBasis: 'Устава',
+  logoDataUrl: null as string | null,
 } as const;
 
 /** Placeholder variables for contract templates (future) */

@@ -96,9 +96,49 @@ service cloud.firestore {
     // Строгий вариант — только автор редактирует свои сметы:
     // allow update: if isSignedIn() && isValidEstimate() && isAuthor();
 
+    function isValidCompany() {
+      let data = request.resource.data;
+      return data.keys().hasAll([
+          'id',
+          'name',
+          'inn',
+          'kpp',
+          'ogrn',
+          'legalAddress',
+          'bankAccount',
+          'bik',
+          'bankName',
+          'director',
+          'directorBasis',
+          'createdAt',
+          'updatedAt',
+        ])
+        && data.id is string
+        && data.id.size() > 0
+        && data.id.size() <= 128
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 300
+        && data.inn is string && data.inn.size() <= 20
+        && data.kpp is string && data.kpp.size() <= 20
+        && data.ogrn is string && data.ogrn.size() <= 20
+        && data.legalAddress is string && data.legalAddress.size() <= 500
+        && data.bankAccount is string && data.bankAccount.size() <= 40
+        && data.bik is string && data.bik.size() <= 20
+        && data.bankName is string && data.bankName.size() <= 300
+        && data.director is string && data.director.size() <= 200
+        && data.directorBasis is string && data.directorBasis.size() <= 200
+        && data.createdAt is string
+        && data.updatedAt is string
+        && (!('logoDataUrl' in data)
+          || data.logoDataUrl == null
+          || (data.logoDataUrl is string && data.logoDataUrl.size() <= 900000));
+    }
+
     match /companies/{docId} {
       allow read: if isSignedIn();
-      allow write: if false;
+      allow create, update: if isSignedIn() && isValidCompany();
+      allow delete: if isSignedIn();
     }
 
     match /contract_templates/{docId} {
@@ -106,9 +146,28 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    function isValidPresentationSlidesSettings() {
+      let data = request.resource.data;
+      return (!('aboutImageDataUrl' in data)
+          || data.aboutImageDataUrl == null
+          || (data.aboutImageDataUrl is string && data.aboutImageDataUrl.size() <= 900000))
+        && (!('recognitionImageDataUrl' in data)
+          || data.recognitionImageDataUrl == null
+          || (data.recognitionImageDataUrl is string && data.recognitionImageDataUrl.size() <= 900000))
+        && (!('qrImageDataUrl' in data)
+          || data.qrImageDataUrl == null
+          || (data.qrImageDataUrl is string && data.qrImageDataUrl.size() <= 900000))
+        && (!('updatedAt' in data) || data.updatedAt is string)
+        && (!('updatedByUid' in data) || data.updatedByUid is string)
+        && (!('updatedByName' in data) || data.updatedByName is string);
+    }
+
     match /settings/{docId} {
       allow read: if isSignedIn();
-      allow write: if false;
+      allow create, update: if isSignedIn()
+        && docId == 'presentation_slides'
+        && isValidPresentationSlidesSettings();
+      allow delete: if false;
     }
   }
 }

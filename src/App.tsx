@@ -6,6 +6,8 @@ import { Layout } from './components/layout/Layout';
 import { AuthContainer } from './components/auth/AuthContainer';
 import { HomePage } from './pages/HomePage';
 import { EstimatePage } from './pages/EstimatePage';
+import { CompaniesPage } from './pages/CompaniesPage';
+import { SlidesPage } from './pages/SlidesPage';
 
 function AppRoutes() {
   const { user, loading, firebaseReady } = useAuth();
@@ -27,6 +29,8 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/estimate" element={<EstimatePage />} />
+        <Route path="/companies" element={<CompaniesPage />} />
+        <Route path="/slides" element={<SlidesPage />} />
       </Routes>
     </Layout>
   );

@@ -62,6 +62,14 @@ export interface EstimateAuthorMeta {
   createdByName: string;
 }
 
+/** Marketing presentation slides attached to a commercial proposal PDF */
+export type PresentationSlideId = 'about' | 'recognition';
+
+export interface PresentationSlides {
+  about: boolean;
+  recognition: boolean;
+}
+
 export interface Estimate {
   id?: string;
   projectName: string;
@@ -73,6 +81,8 @@ export interface Estimate {
   clientLogoCustom?: string | null;
   clientId?: string;
   contractTemplateId?: string;
+  /** Selected KP constructor slides (exported as PDF pages before the estimate table) */
+  presentationSlides?: PresentationSlides;
   createdByUid?: string;
   createdByName?: string;
   isDraft?: boolean;
@@ -81,9 +91,9 @@ export interface Estimate {
   updatedAt?: string;
 }
 
-export type ClientLogoId = 'none' | 'vzlp' | 'gazprom' | 'rosatom' | 'custom';
+export type ClientLogoId = 'none' | 'custom';
 
-/** Future: counterparty requisites */
+/** Counterparty / customer company requisites */
 export interface Company {
   id: string;
   name: string;
@@ -96,9 +106,17 @@ export interface Company {
   bankName: string;
   director: string;
   directorBasis: string;
+  /** Base64 data URL of company logo (optional) */
+  logoDataUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+export type CompanyInput = Omit<Company, 'id' | 'createdAt' | 'updatedAt'> & {
+  id?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
 
 /** Future: contract templates */
 export interface ContractTemplate {

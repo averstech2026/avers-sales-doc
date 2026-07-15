@@ -16,8 +16,9 @@ interface PersonalizationSettingsProps {
 const COLOR_FIELDS: Array<{ key: keyof ThemeColors; label: string }> = [
   { key: 'sidebarBg', label: 'Фон бокового меню' },
   { key: 'sidebarActive', label: 'Выделение в меню (активный пункт)' },
+  { key: 'sidebarText', label: 'Цвет шрифта в меню' },
   { key: 'button', label: 'Кнопки и основные действия' },
-  { key: 'saveButton', label: 'Кнопка «Сохранить в облако»' },
+  { key: 'saveButton', label: 'Кнопки «Создать смету» и «Сохранить в облако»' },
   { key: 'tableHeader', label: 'Заголовки таблиц сметы' },
   { key: 'highlightBg', label: 'Фон подсветки (итоги, карточки)' },
   { key: 'cornersAccent', label: 'Уголки акцентные (верх-справа, низ-слева)' },
@@ -92,16 +93,13 @@ export function PersonalizationSettings({ open = true, onSaved }: Personalizatio
             </button>
           </div>
           <div className="personalization-settings__save">
-            {saved && !hasChanges && (
-              <span className="personalization-settings__status">Сохранено</span>
-            )}
             <button
               type="button"
               className="btn btn--primary"
               onClick={handleSave}
               disabled={!hasChanges && saved}
             >
-              Сохранить
+              {saved && !hasChanges ? 'Сохранено' : 'Сохранить'}
             </button>
           </div>
         </div>
