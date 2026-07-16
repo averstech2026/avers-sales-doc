@@ -8,6 +8,7 @@ export const VERSION_HISTORY = [
   { version: '1.0.4', date: '2026-07-16', notes: 'Rename project to Конструктор смет и КП Co-authored-by: Cursor <cursoragent@cursor.com>' },
   { version: '1.0.5', date: '2026-07-16', notes: 'Use custom slide photos as default presentation assets. Promote the uploaded images for about, recognition, kiosk, and contacts slides into public assets so new estimates and resets use them without p' },
   { version: '1.0.6', date: '2026-07-16', notes: 'Polish KP slide badges and add local text presets. Improve badge layout and premium outline icons with color options, and let editors save alternate text variants per slide under the live preview. Co-' },
+  { version: '1.0.7', date: '2026-07-16', notes: 'Unify red accent lines at 1.5px and match title width on slides and PDF. Also gray the PDF header rule and uppercase the estimate details heading. Co-authored-by: Cursor <cursoragent@cursor.com>' },
 ] as const;
 
 const current = VERSION_HISTORY[VERSION_HISTORY.length - 1];
