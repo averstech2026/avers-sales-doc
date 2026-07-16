@@ -7,12 +7,14 @@ import {
   resolveContactsMapSrc,
   resolveSlideImageSrc,
   resolveSlideQrSrc,
+  slideChipColorVars,
   type ContactsSlideContent,
   type PresentationSlideContent,
   type PresentationSlideId,
   type SlideBadgeIconId,
 } from '../../utils/presentationSlides';
 import { loadThemeColors } from '../../utils/personalization';
+import { buildSlideBadgeIconSvgHtml } from './SlideBadgeIcon';
 
 function escapeHtml(value: string): string {
   return value
@@ -22,10 +24,17 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
+function chipColorStyleAttr(content: PresentationSlideContent): string {
+  const vars = slideChipColorVars(content.badgeColor, content.qrBadgeColor);
+  return Object.entries(vars)
+    .map(([key, value]) => `${key}:${value}`)
+    .join(';');
+}
+
 function buildBadgeIconHtml(badgeIcon: SlideBadgeIconId | string | undefined): string {
   const meta = getSlideBadgeIconMeta(badgeIcon);
   if (meta.id === 'none') return '';
-  return `<span class="kp-slide__badge-icon ${meta.className}">${escapeHtml(meta.glyph)}</span>`;
+  return `<span class="slide-badge-icon-container ${meta.containerClass}" data-badge-type="${meta.id}">${buildSlideBadgeIconSvgHtml(meta.id)}</span>`;
 }
 
 /** Shared CSS for standard KP slide layout (editor preview + PDF). */
@@ -49,6 +58,7 @@ export function standardSlideCss(): string {
       justify-content: flex-start;
       overflow: hidden;
       color: #0f172a;
+      --slide-chip-row-width: 412px;
     }
 
     .slide-header {
@@ -69,68 +79,63 @@ export function standardSlideCss(): string {
     .slide-header-line {
       height: 3px;
       background-color: ${accent};
-      width: 85%;
+      /* До начала левого уголка фото: text-col (1.1/2) + gap 40px */
+      width: calc((100% - 40px) * 0.55 + 40px);
+      max-width: 100%;
       border: none;
     }
 
     .kp-slide__badge {
       display: inline-flex;
-      align-items: flex-start;
-      gap: 10px;
-      max-width: 720px;
+      align-items: center;
+      gap: 12px;
+      width: var(--slide-chip-row-width, 412px);
+      max-width: 100%;
       margin: 0 0 14px;
-      padding: 10px 14px;
-      border-radius: 10px;
-      background: #eef7f0;
-      border: 1px solid #d8ebe0;
-      color: #1f2937;
-      font-size: 12px;
+      padding: 10px 16px 10px 12px;
+      border-radius: 12px;
+      background: var(--slide-badge-bg, #f0fdf4);
+      border: none;
+      color: var(--slide-badge-fg, #1e293b);
+      box-sizing: border-box;
+    }
+    .kp-slide__badge-text {
+      font-size: 11px;
       font-weight: 500;
       line-height: 1.4;
+      color: inherit;
+      text-align: left;
     }
-    .kp-slide__badge-icon {
-      flex-shrink: 0;
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      background: linear-gradient(145deg, #7c3aed, #4f46e5);
-      color: #fff;
-      font-size: 10px;
-      font-weight: 800;
-      display: flex;
+    .slide-badge-icon-container {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      box-sizing: border-box;
     }
-    .kp-slide__badge-icon--ai {
-      background: linear-gradient(145deg, #7c3aed, #4f46e5);
-      font-size: 10px;
-      font-weight: 800;
+    .slide-badge-icon-container svg {
+      display: block;
     }
-    .kp-slide__badge-icon--star {
-      background: linear-gradient(145deg, #f59e0b, #d97706);
-      font-size: 14px;
-      font-weight: 700;
+    .badge-container-ai {
+      background: linear-gradient(135deg, #f5f3ff 0%, #e0f2fe 100%);
+      color: #7c3aed;
+      border: 1px solid #ddd6fe;
     }
-    .kp-slide__badge-icon--bolt {
-      background: linear-gradient(145deg, #f97316, #ea580c);
-      font-size: 14px;
-      font-weight: 700;
+    .badge-container-ai svg {
+      filter: drop-shadow(0 1px 2px rgba(124, 58, 237, 0.15));
     }
-    .kp-slide__badge-icon--shield {
-      background: linear-gradient(145deg, #2563eb, #1d4ed8);
-      font-size: 13px;
-      font-weight: 700;
-    }
-    .kp-slide__badge-icon--check {
-      background: linear-gradient(145deg, #16a34a, #15803d);
-      font-size: 14px;
-      font-weight: 800;
-    }
-    .kp-slide__badge-icon--chip {
-      background: linear-gradient(145deg, #0f766e, #115e59);
-      font-size: 8px;
-      font-weight: 800;
-      letter-spacing: -0.2px;
+    .badge-container-star { background-color: #fffbeb; color: #d97706; }
+    .badge-container-energy { background-color: #fff7ed; color: #ea580c; }
+    .badge-container-system { background-color: #eff6ff; color: #2563eb; }
+    .badge-container-success { background-color: #f0fdf4; color: #16a34a; }
+    .badge-container-iot { background-color: #f0fdfa; color: #0d9488; }
+    .badge-container-info {
+      background-color: #f8fafc;
+      color: #475569;
+      border: 1px solid #e2e8f0;
     }
 
     .slide-content-grid {
@@ -230,35 +235,42 @@ export function standardSlideCss(): string {
 
     .kp-slide__qr {
       margin-top: auto;
-      padding-top: 18px;
+      padding-top: 24px;
       display: flex;
-      align-items: center;
-      gap: 12px;
+      align-items: flex-end;
+      gap: 16px;
+      width: var(--slide-chip-row-width, 412px);
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .kp-slide__qr-caption {
-      flex: 1;
+      flex: 1 1 auto;
       min-width: 0;
       margin: 0;
-      padding: 12px 14px;
-      border-radius: 10px;
-      background: #eef7f0;
-      border: 1px solid #d8ebe0;
+      padding: 14px 20px;
+      border-radius: 12px;
+      background: var(--slide-qr-badge-bg, #e6f7f0);
+      border: none;
       font-size: 12px;
       line-height: 1.4;
-      color: #1f2937;
+      color: var(--slide-qr-badge-fg, #0f172a);
+      box-sizing: border-box;
     }
     .kp-slide__qr-code {
-      width: 78px;
-      height: 78px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      height: auto;
       flex-shrink: 0;
-      border: 2px solid #86efac;
-      border-radius: 6px;
+      border: 1.5px solid var(--slide-qr-badge-accent, #00a86b);
+      border-radius: 8px;
       background: #fff;
-      padding: 4px;
+      padding: 6px;
     }
     .kp-slide__qr-code img {
-      width: 100%;
-      height: 100%;
+      width: 64px;
+      height: 64px;
       object-fit: contain;
       display: block;
     }
@@ -518,24 +530,45 @@ export function embeddedSlideCss(): string {
     }
     /* Match .pdf-section-accent */
     .embedded-slide-accent {
-      width: 60px;
+      /* До начала колонки с фото в embedded-сетке 1.2fr / 0.8fr, gap 28px */
+      width: calc((100% - 28px) * 1.2 / 2 + 28px);
+      max-width: 100%;
       height: 2px;
       background: ${accent};
       margin-bottom: 12px;
     }
     .embedded-slide-badge {
       display: inline-flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 8px;
+      width: 300px;
+      max-width: 100%;
       margin: 0 0 10px;
-      padding: 6px 10px;
-      border-radius: 6px;
-      background: #eef7f0;
-      border: 1px solid #d8ebe0;
-      color: #1f2937;
+      padding: 6px 12px 6px 8px;
+      border-radius: 8px;
+      background: var(--slide-badge-bg, #f0fdf4);
+      border: none;
+      color: var(--slide-badge-fg, #1e293b);
       font-size: 10px;
       font-weight: 500;
       line-height: 1.35;
+      box-sizing: border-box;
+    }
+    .embedded-slide-badge .kp-slide__badge-text {
+      font-size: 10px;
+      line-height: 1.35;
+      color: inherit;
+      text-align: left;
+    }
+    .embedded-slide-badge .slide-badge-icon-container {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .embedded-slide-badge .slide-badge-icon-container svg {
+      width: 14px;
+      height: 14px;
     }
     /* Match .pdf-description */
     .embedded-slide-description {
@@ -593,34 +626,42 @@ export function embeddedSlideCss(): string {
       margin: 0;
     }
     .embedded-slide-qr {
-      margin-top: 10px;
+      margin-top: 12px;
       display: flex;
-      align-items: center;
-      gap: 10px;
+      align-items: flex-end;
+      gap: 12px;
+      width: 300px;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .embedded-slide-qr-caption {
-      flex: 1;
+      flex: 1 1 auto;
+      min-width: 0;
       margin: 0;
-      padding: 8px 10px;
-      border-radius: 6px;
-      background: #eef7f0;
-      border: 1px solid #d8ebe0;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--slide-qr-badge-bg, #e6f7f0);
+      border: none;
       font-size: 10px;
       line-height: 1.35;
-      color: #1f2937;
+      color: var(--slide-qr-badge-fg, #0f172a);
+      box-sizing: border-box;
     }
     .embedded-slide-qr-code {
-      width: 56px;
-      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      height: auto;
       flex-shrink: 0;
-      border: 1.5px solid #86efac;
-      border-radius: 4px;
+      border: 1.5px solid var(--slide-qr-badge-accent, #00a86b);
+      border-radius: 6px;
       background: #fff;
-      padding: 3px;
+      padding: 4px;
     }
     .embedded-slide-qr-code img {
-      width: 100%;
-      height: 100%;
+      width: 48px;
+      height: 48px;
       object-fit: contain;
       display: block;
     }
@@ -909,7 +950,7 @@ export function buildEmbeddedStandardSlideHtml(
   const showQr = Boolean(content.qrCaption.trim() && qrSrc);
 
   const badgeHtml = showBadge
-    ? `<div class="embedded-slide-badge">${buildBadgeIconHtml(content.badgeIcon)}<span>${escapeHtml(content.badge)}</span></div>`
+    ? `<div class="embedded-slide-badge">${buildBadgeIconHtml(content.badgeIcon)}<span class="kp-slide__badge-text">${escapeHtml(content.badge)}</span></div>`
     : '';
 
   const leadHtml = showLead
@@ -954,7 +995,7 @@ export function buildEmbeddedStandardSlideHtml(
   const hasBodyRow = Boolean(solutionsHtml || qrHtml);
 
   return `
-    <div class="kp-embedded-slide-block" data-slide="${id}">
+    <div class="kp-embedded-slide-block" data-slide="${id}" style="${escapeHtml(chipColorStyleAttr(content))}">
       <h2 class="embedded-slide-title">${escapeHtml(content.title || 'Заголовок')}</h2>
       <div class="embedded-slide-accent"></div>
       ${badgeHtml}
@@ -1009,7 +1050,7 @@ export function buildStandardSlideHtml(
   const showQr = Boolean(content.qrCaption.trim() && qrSrc);
 
   const badgeHtml = showBadge
-    ? `<div class="kp-slide__badge">${buildBadgeIconHtml(content.badgeIcon)}<span>${escapeHtml(content.badge)}</span></div>`
+    ? `<div class="kp-slide__badge">${buildBadgeIconHtml(content.badgeIcon)}<span class="kp-slide__badge-text">${escapeHtml(content.badge)}</span></div>`
     : '';
 
   const leadHtml = showLead
@@ -1043,7 +1084,7 @@ export function buildStandardSlideHtml(
     : '';
 
   return `
-    <div class="pdf-page pdf-page-slide kp-slide presentation-slide" data-slide="${id}">
+    <div class="pdf-page pdf-page-slide kp-slide presentation-slide" data-slide="${id}" style="${escapeHtml(chipColorStyleAttr(content))}">
       <div class="slide-header">
         <h1 class="slide-title">${escapeHtml(content.title)}</h1>
         ${badgeHtml}

@@ -4,6 +4,7 @@ import {
   DEFAULT_MAX_PHOTO_CHARS,
   DEFAULT_MAX_QR_CHARS,
   SLIDE_BADGE_ICON_OPTIONS,
+  SLIDE_CHIP_COLOR_OPTIONS,
   compressImageFile,
   createBlankSlideContent,
   createDefaultSlideContent,
@@ -12,6 +13,42 @@ import {
 import { EditorBackLink } from '../ui/EditorBackLink';
 import { SlideCanvas } from './SlideCanvas';
 import { ScaledSlideFrame } from './ScaledSlideFrame';
+import { SlideBadgeIcon } from './SlideBadgeIcon';
+import { SlideTextPresets } from './SlideTextPresets';
+
+function ChipColorPicker({
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  disabled?: boolean;
+  onChange: (id: (typeof SLIDE_CHIP_COLOR_OPTIONS)[number]['id']) => void;
+}) {
+  return (
+    <div className="icon-selector-group">
+      <span className="field-meta-label">{label}</span>
+      <div className="chip-color-picker-row" role="radiogroup" aria-label={label}>
+        {SLIDE_CHIP_COLOR_OPTIONS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            className={`chip-color-swatch${value === option.id ? ' is-active' : ''}`}
+            style={{ backgroundColor: option.background, borderColor: option.accent }}
+            onClick={() => onChange(option.id)}
+            disabled={disabled}
+            role="radio"
+            aria-checked={value === option.id}
+            title={option.label}
+            aria-label={option.label}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface SlideEditorProps {
   id: Exclude<PresentationSlideId, 'contacts'> | string;
@@ -86,6 +123,8 @@ export function SlideEditor({
       ...defaults,
       imageDataUrl: draft.imageDataUrl,
       qrImageDataUrl: draft.qrImageDataUrl,
+      badgeColor: draft.badgeColor,
+      qrBadgeColor: draft.qrBadgeColor,
     });
   };
 
@@ -101,11 +140,13 @@ export function SlideEditor({
       title: draft.title.trim(),
       badge: draft.badge.trim(),
       badgeIcon: draft.badgeIcon,
+      badgeColor: draft.badgeColor,
       disclaimer: draft.disclaimer.trim(),
       subtitle: draft.subtitle.trim(),
       bulletsText: draft.bulletsText,
       body: draft.body.trim(),
       qrCaption: draft.qrCaption.trim(),
+      qrBadgeColor: draft.qrBadgeColor,
     });
   };
 
@@ -157,7 +198,7 @@ export function SlideEditor({
                     key={option.id}
                     type="button"
                     className={`icon-picker-btn${
-                      draft.badgeIcon === option.id ? ' active' : ''
+                      draft.badgeIcon === option.id ? ' is-active' : ''
                     }`}
                     data-icon={option.id}
                     onClick={() => patch({ badgeIcon: option.id })}
@@ -167,16 +208,24 @@ export function SlideEditor({
                     title={option.pickerTitle}
                   >
                     {option.id === 'none' ? (
-                      <span className="icon-none-symbol">—</span>
-                    ) : (
-                      <span className={`icon-preview-badge ${option.pickerBadgeClass}`}>
-                        {option.glyph}
+                      <span className="slide-badge-icon-container badge-container-none slide-badge-icon-container--picker">
+                        <span className="icon-none-symbol" aria-hidden>
+                          —
+                        </span>
                       </span>
+                    ) : (
+                      <SlideBadgeIcon iconId={option.id} size="picker" />
                     )}
                   </button>
                 ))}
               </div>
             </div>
+            <ChipColorPicker
+              label="Цвет верхней плашки"
+              value={draft.badgeColor}
+              disabled={saving}
+              onChange={(badgeColor) => patch({ badgeColor })}
+            />
             <textarea
               rows={2}
               value={draft.badge}
@@ -223,15 +272,21 @@ export function SlideEditor({
             />
           </label>
 
-          <label className="field">
+          <div className="field">
             <span>Подпись к QR (необязательно)</span>
+            <ChipColorPicker
+              label="Цвет нижней плашки (QR)"
+              value={draft.qrBadgeColor}
+              disabled={saving}
+              onChange={(qrBadgeColor) => patch({ qrBadgeColor })}
+            />
             <textarea
               rows={2}
               value={draft.qrCaption}
               onChange={(e) => patch({ qrCaption: e.target.value })}
               placeholder="Оставьте пустым, чтобы скрыть QR-блок"
             />
-          </label>
+          </div>
 
           <div className="slide-editor__media">
             <div className="slide-editor__media-card">
@@ -295,6 +350,12 @@ export function SlideEditor({
               <SlideCanvas id={id} content={draft} defaultImageFile={defaultImageFile} />
             </ScaledSlideFrame>
           </div>
+          <SlideTextPresets
+            slideId={id}
+            draft={draft}
+            disabled={saving}
+            onApply={setDraft}
+          />
         </div>
       </div>
 

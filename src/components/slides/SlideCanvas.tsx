@@ -1,10 +1,11 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, type CSSProperties } from 'react';
 import {
   isContactsContent,
   isContactsSlideId,
   parseBulletLines,
   resolveSlideImageSrc,
   resolveSlideQrSrc,
+  slideChipColorVars,
   type AnySlideContent,
   type ContactsSlideContent,
   type PresentationSlideContent,
@@ -58,6 +59,7 @@ function StandardSlideCanvas({
   const showLead = Boolean(content.disclaimer.trim());
   const showSubtitle = Boolean(content.subtitle.trim());
   const showQr = Boolean(content.qrCaption.trim() && qrSrc);
+  const chipVars = slideChipColorVars(content.badgeColor, content.qrBadgeColor);
 
   const textRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
@@ -88,13 +90,17 @@ function StandardSlideCanvas({
   }, [id, content, bullets.length, showBadge, showLead, showSubtitle, showQr, imageSrc]);
 
   return (
-    <div className={`kp-slide presentation-slide ${className}`.trim()} data-slide={id}>
+    <div
+      className={`kp-slide presentation-slide ${className}`.trim()}
+      data-slide={id}
+      style={chipVars as CSSProperties}
+    >
       <div className="slide-header">
         <h1 className="slide-title">{content.title || 'Заголовок слайда'}</h1>
         {showBadge && (
           <div className="kp-slide__badge">
             <SlideBadgeIcon iconId={content.badgeIcon} />
-            <span>{content.badge}</span>
+            <span className="kp-slide__badge-text">{content.badge}</span>
           </div>
         )}
         <div className="slide-header-line" />

@@ -1,74 +1,72 @@
 export type PresentationSlideId = 'about' | 'recognition' | 'kiosk' | 'contacts';
 
-export type SlideBadgeIconId = 'ai' | 'star' | 'bolt' | 'shield' | 'check' | 'chip' | 'none';
+export type SlideBadgeIconId =
+  | 'ai'
+  | 'star'
+  | 'bolt'
+  | 'shield'
+  | 'check'
+  | 'chip'
+  | 'info'
+  | 'none';
 
 export interface SlideBadgeIconOption {
   id: SlideBadgeIconId;
   label: string;
-  glyph: string;
-  className: string;
+  /** Pastel squircle container class */
+  containerClass: string;
   /** Native tooltip in the compact icon picker */
   pickerTitle: string;
-  /** CSS class for the mini preview badge in the picker */
-  pickerBadgeClass: string;
 }
 
 export const SLIDE_BADGE_ICON_OPTIONS: SlideBadgeIconOption[] = [
   {
     id: 'none',
     label: 'Без иконки',
-    glyph: '',
-    className: '',
+    containerClass: 'badge-container-none',
     pickerTitle: 'Без иконки',
-    pickerBadgeClass: '',
   },
   {
     id: 'ai',
     label: 'AI',
-    glyph: 'AI',
-    className: 'kp-slide__badge-icon--ai',
+    containerClass: 'badge-container-ai',
     pickerTitle: 'ИИ / Искусственный интеллект',
-    pickerBadgeClass: 'badge-purple',
   },
   {
     id: 'star',
     label: 'Звезда',
-    glyph: '★',
-    className: 'kp-slide__badge-icon--star',
-    pickerTitle: 'Звезда / Избранное',
-    pickerBadgeClass: 'badge-orange',
+    containerClass: 'badge-container-star',
+    pickerTitle: 'Преимущество / Избранное',
   },
   {
     id: 'bolt',
-    label: 'Инновации',
-    glyph: '⚡',
-    className: 'kp-slide__badge-icon--bolt',
-    pickerTitle: 'Инновации / Молния',
-    pickerBadgeClass: 'badge-red-orange',
+    label: 'Энергия',
+    containerClass: 'badge-container-energy',
+    pickerTitle: 'Скорость / Энергия',
   },
   {
     id: 'shield',
-    label: 'Надёжность',
-    glyph: '◆',
-    className: 'kp-slide__badge-icon--shield',
-    pickerTitle: 'Надёжность / Алмаз',
-    pickerBadgeClass: 'badge-blue',
+    label: 'Модуль',
+    containerClass: 'badge-container-system',
+    pickerTitle: 'Интеграция / Модуль',
   },
   {
     id: 'check',
-    label: 'Качество',
-    glyph: '✓',
-    className: 'kp-slide__badge-icon--check',
-    pickerTitle: 'Качество / Галочка',
-    pickerBadgeClass: 'badge-green',
+    label: 'Готово',
+    containerClass: 'badge-container-success',
+    pickerTitle: 'Готовое решение / Надёжность',
   },
   {
     id: 'chip',
-    label: 'Технологии',
-    glyph: 'IoT',
-    className: 'kp-slide__badge-icon--chip',
-    pickerTitle: 'Технологии / IoT',
-    pickerBadgeClass: 'badge-dark-green',
+    label: 'IoT',
+    containerClass: 'badge-container-iot',
+    pickerTitle: 'Интернет вещей / Оборудование',
+  },
+  {
+    id: 'info',
+    label: 'Инфо',
+    containerClass: 'badge-container-info',
+    pickerTitle: 'Обратите внимание',
   },
 ];
 
@@ -89,6 +87,99 @@ export function normalizeBadgeIconId(
   return fallback;
 }
 
+export type SlideChipColorId = 'mint' | 'sky' | 'amber' | 'rose' | 'violet' | 'slate';
+
+export interface SlideChipColorOption {
+  id: SlideChipColorId;
+  label: string;
+  /** Soft badge background */
+  background: string;
+  /** Caption / badge text */
+  foreground: string;
+  /** QR frame accent (also used as subtle border hint) */
+  accent: string;
+}
+
+export const DEFAULT_SLIDE_CHIP_COLOR: SlideChipColorId = 'mint';
+
+export const SLIDE_CHIP_COLOR_OPTIONS: SlideChipColorOption[] = [
+  {
+    id: 'mint',
+    label: 'Мята',
+    background: '#f0fdf4',
+    foreground: '#1e293b',
+    accent: '#00a86b',
+  },
+  {
+    id: 'sky',
+    label: 'Небо',
+    background: '#eff6ff',
+    foreground: '#1e293b',
+    accent: '#3b82f6',
+  },
+  {
+    id: 'amber',
+    label: 'Янтарь',
+    background: '#fffbeb',
+    foreground: '#1e293b',
+    accent: '#f59e0b',
+  },
+  {
+    id: 'rose',
+    label: 'Роза',
+    background: '#fff1f2',
+    foreground: '#1e293b',
+    accent: '#f43f5e',
+  },
+  {
+    id: 'violet',
+    label: 'Фиолет',
+    background: '#f5f3ff',
+    foreground: '#1e293b',
+    accent: '#8b5cf6',
+  },
+  {
+    id: 'slate',
+    label: 'Серый',
+    background: '#f1f5f9',
+    foreground: '#1e293b',
+    accent: '#64748b',
+  },
+];
+
+export function getSlideChipColorMeta(
+  id: SlideChipColorId | string | undefined
+): SlideChipColorOption {
+  const found = SLIDE_CHIP_COLOR_OPTIONS.find((option) => option.id === id);
+  return found ?? SLIDE_CHIP_COLOR_OPTIONS.find((option) => option.id === DEFAULT_SLIDE_CHIP_COLOR)!;
+}
+
+export function normalizeSlideChipColorId(
+  value: unknown,
+  fallback: SlideChipColorId = DEFAULT_SLIDE_CHIP_COLOR
+): SlideChipColorId {
+  if (typeof value === 'string' && SLIDE_CHIP_COLOR_OPTIONS.some((option) => option.id === value)) {
+    return value as SlideChipColorId;
+  }
+  return fallback;
+}
+
+/** CSS custom properties for top badge / bottom QR chip colors. */
+export function slideChipColorVars(
+  badgeColor: SlideChipColorId | string | undefined,
+  qrBadgeColor: SlideChipColorId | string | undefined
+): Record<string, string> {
+  const badge = getSlideChipColorMeta(badgeColor);
+  const qr = getSlideChipColorMeta(qrBadgeColor);
+  return {
+    '--slide-badge-bg': badge.background,
+    '--slide-badge-fg': badge.foreground,
+    '--slide-qr-badge-bg': qr.background,
+    '--slide-qr-badge-fg': qr.foreground,
+    '--slide-qr-badge-accent': qr.accent,
+  };
+}
+
 /** Editable content of one KP slide (same layout for all slides). */
 export interface PresentationSlideContent {
   title: string;
@@ -96,6 +187,8 @@ export interface PresentationSlideContent {
   badge: string;
   /** Icon shown in the badge pill; `none` hides the icon */
   badgeIcon: SlideBadgeIconId;
+  /** Soft background color for the top badge */
+  badgeColor: SlideChipColorId;
   disclaimer: string;
   subtitle: string;
   /** Newline-separated bullet items; takes priority over `body` when non-empty */
@@ -104,6 +197,8 @@ export interface PresentationSlideContent {
   body: string;
   /** Caption next to QR; empty hides the QR block */
   qrCaption: string;
+  /** Soft background color for the QR caption chip */
+  qrBadgeColor: SlideChipColorId;
   imageDataUrl: string | null;
   qrImageDataUrl: string | null;
 }
@@ -201,11 +296,13 @@ export function createBlankSlideContent(): PresentationSlideContent {
     title: 'Новый слайд',
     badge: '',
     badgeIcon: 'none',
+    badgeColor: DEFAULT_SLIDE_CHIP_COLOR,
     disclaimer: 'Введите краткое описание или вводный текст для этого слайда...',
     subtitle: 'Наши решения:',
     bulletsText: ['Первый пункт списка решений', 'Второй пункт списка решений'].join('\n'),
     body: '',
     qrCaption: '',
+    qrBadgeColor: DEFAULT_SLIDE_CHIP_COLOR,
     imageDataUrl: null,
     qrImageDataUrl: null,
   };
@@ -265,6 +362,7 @@ export function createDefaultSlideContent(id: Exclude<PresentationSlideId, 'cont
       badge:
         'Основано на принципах машинного зрения и алгоритмах искусственного интеллекта (AI)',
       badgeIcon: 'ai',
+      badgeColor: DEFAULT_SLIDE_CHIP_COLOR,
       disclaimer:
         '*Обратите внимание: внешний вид интерфейса и конкретные модели оборудования могут отличаться от представленных в КП.',
       subtitle: 'Умная касса',
@@ -277,6 +375,7 @@ export function createDefaultSlideContent(id: Exclude<PresentationSlideId, 'cont
       ].join('\n'),
       body: '',
       qrCaption: 'Отсканируйте QR-код, чтобы посмотреть видео работы умной кассы:',
+      qrBadgeColor: DEFAULT_SLIDE_CHIP_COLOR,
       imageDataUrl: null,
       qrImageDataUrl: null,
     };
@@ -287,6 +386,7 @@ export function createDefaultSlideContent(id: Exclude<PresentationSlideId, 'cont
       title: 'Терминал самообслуживания',
       badge: '',
       badgeIcon: 'none',
+      badgeColor: DEFAULT_SLIDE_CHIP_COLOR,
       disclaimer:
         '*Обратите внимание: внешний вид интерфейса и конкретные модели оборудования могут отличаться от представленных в КП.',
       subtitle: '«Как в Макдоналдс»',
@@ -294,6 +394,7 @@ export function createDefaultSlideContent(id: Exclude<PresentationSlideId, 'cont
       body:
         'Интерактивный терминал самообслуживания позволяет гостям самостоятельно выбирать блюда, формировать заказ и оплачивать его без участия кассира. Решение ускоряет обслуживание в часы пик, снижает очередь и повышает удобство для посетителей столовых и ритейла.',
       qrCaption: '',
+      qrBadgeColor: DEFAULT_SLIDE_CHIP_COLOR,
       imageDataUrl: null,
       qrImageDataUrl: null,
     };
@@ -303,6 +404,7 @@ export function createDefaultSlideContent(id: Exclude<PresentationSlideId, 'cont
     title: 'Команда разработки Аверс Технолоджи',
     badge: '',
     badgeIcon: 'none',
+    badgeColor: DEFAULT_SLIDE_CHIP_COLOR,
     disclaimer:
       'Наша компания специализируется на разработке информационных систем для сферы общепита и автоматизации ритейла. Мы обладаем глубокой экспертизой и готовы реализовать проект любой сложности.',
     subtitle: 'Наши решения:',
@@ -320,6 +422,7 @@ export function createDefaultSlideContent(id: Exclude<PresentationSlideId, 'cont
     ].join('\n'),
     body: '',
     qrCaption: '',
+    qrBadgeColor: DEFAULT_SLIDE_CHIP_COLOR,
     imageDataUrl: null,
     qrImageDataUrl: null,
   };
@@ -418,11 +521,13 @@ export function normalizeSlideContent(
     title: asString(raw.title, base.title),
     badge: asString(raw.badge, base.badge),
     badgeIcon: normalizeBadgeIconId(raw.badgeIcon, base.badgeIcon),
+    badgeColor: normalizeSlideChipColorId(raw.badgeColor, base.badgeColor),
     disclaimer: asString(raw.disclaimer, base.disclaimer),
     subtitle: asString(raw.subtitle, base.subtitle),
     bulletsText: asString(raw.bulletsText, base.bulletsText),
     body: asString(raw.body, base.body),
     qrCaption: asString(raw.qrCaption, base.qrCaption),
+    qrBadgeColor: normalizeSlideChipColorId(raw.qrBadgeColor, base.qrBadgeColor),
     imageDataUrl: raw.imageDataUrl === undefined ? base.imageDataUrl : asNullableString(raw.imageDataUrl),
     qrImageDataUrl:
       raw.qrImageDataUrl === undefined ? base.qrImageDataUrl : asNullableString(raw.qrImageDataUrl),
