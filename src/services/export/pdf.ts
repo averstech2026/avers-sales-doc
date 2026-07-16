@@ -13,7 +13,7 @@ import {
 import { AVERS_LOGO } from '../../utils/clientLogo';
 import { loadThemeColors } from '../../utils/personalization';
 import { loadPresentationSlidesLibrary } from '../presentationSlides';
-import { buildStandardSlideHtml, standardSlideCss } from '../../components/slides/slideTemplate';
+import { buildEmbeddedStandardSlideHtml, buildEmbeddedContactsSlideHtml, embeddedSlideCss } from '../../components/slides/slideTemplate';
 import {
   createDefaultSlidesLibrary,
   type PresentationSlidesLibrary,
@@ -154,6 +154,12 @@ export function pdfStyles(): string {
       font-weight: 600;
       color: #1e293b;
     }
+    .kp-author-info {
+      font-size: 11px;
+      color: ${c.textMuted};
+      margin-top: 4px;
+      font-weight: 500;
+    }
     .project-meta-pdf {
       margin-top: 6px;
       font-size: 12px;
@@ -169,7 +175,7 @@ export function pdfStyles(): string {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 12px;
-      margin: 16px 0 20px;
+      margin: 0 0 20px;
     }
     .pdf-summary-card {
       position: relative;
@@ -194,17 +200,22 @@ export function pdfStyles(): string {
       font-size: 18px;
       color: ${c.accent};
     }
+    .pdf-estimation-details-header {
+      margin-top: 35px;
+      margin-bottom: 15px;
+    }
     .pdf-section-title {
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 700;
-      text-transform: uppercase;
-      margin: 0 0 4px;
+      color: ${c.text};
+      text-transform: none;
+      margin: 0 0 6px;
     }
     .pdf-section-accent {
-      width: 32px;
-      height: 3px;
+      width: 60px;
+      height: 2px;
       background: ${c.accent};
-      margin-bottom: 12px;
+      margin-bottom: 0;
     }
     .pdf-table-wrap { overflow-x: auto; }
     .pdf-table {
@@ -326,24 +337,26 @@ export function pdfStyles(): string {
       page-break-inside: avoid;
     }
     .pdf-description-block {
-      margin: 0 0 20px;
+      margin: 0 0 28px;
       page-break-inside: avoid;
     }
     .pdf-description-title {
-      font-size: 13px;
-      font-weight: 700;
+      font-size: 15px;
+      font-weight: 800;
       color: ${c.text};
-      margin: 0 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 10px;
     }
     .pdf-description {
       margin: 0;
-      font-size: 11px;
+      font-size: 12.5px;
       line-height: 1.5;
-      color: ${c.textMuted};
+      color: #475569;
     }
 
-    /* Presentation slides — standard KP layout */
-    ${standardSlideCss()}
+    /* Embedded presentation slides inside A4 document flow */
+    ${embeddedSlideCss()}
   `;
 }
 
@@ -387,10 +400,27 @@ export function wirePdfImageFallbacks(root: HTMLElement): void {
   });
 }
 
-function buildPageHeaderHtml(estimate: Estimate, clientLogoSrc: string | null): string {
+function buildAuthorInfoHtml(
+  estimate: Estimate,
+  signature?: PdfExportOptions['signature']
+): string {
+  const name = signature?.fullName?.trim() || estimate.createdByName?.trim() || '';
+  const position = signature?.position?.trim() || '';
+  if (!name && !position) return '';
+  const label =
+    name && position ? `${name}, ${position}` : name || position;
+  return `<div class="kp-author-info">Составил: ${escapeHtml(label)}</div>`;
+}
+
+function buildPageHeaderHtml(
+  estimate: Estimate,
+  clientLogoSrc: string | null,
+  signature?: PdfExportOptions['signature']
+): string {
   const aversLogo = resolveAbsoluteUrl(AVERS_LOGO);
   const clientLogo = clientLogoSrc ? resolveAbsoluteUrl(clientLogoSrc) : null;
   const clientName = estimate.clientName?.trim() || '—';
+  const authorHtml = buildAuthorInfoHtml(estimate, signature);
 
   const clientLogoImg = clientLogo
     ? pdfLogoImg(clientLogo, clientName, 'client-logo-pdf')
@@ -411,6 +441,7 @@ function buildPageHeaderHtml(estimate: Estimate, clientLogoSrc: string | null): 
               ${pdfLogoImg(aversLogo, 'Avers Technology', 'brand-logo-pdf')}
             </div>
             <div class="company-name-pdf">ООО «Аверс Технолоджи»</div>
+            ${authorHtml}
           </div>
         </div>
         <div class="pdf-header-column right">
@@ -541,8 +572,10 @@ function buildTableHtml(estimate: Estimate): string {
     .join('');
 
   return `
-    <h2 class="pdf-section-title">Детализация сметы</h2>
-    <div class="pdf-section-accent"></div>
+    <div class="pdf-estimation-details-header">
+      <h2 class="pdf-section-title">Детализация сметы</h2>
+      <div class="pdf-section-accent"></div>
+    </div>
     <div class="pdf-table-wrap">
       <table class="pdf-table">
         <colgroup>
@@ -595,14 +628,19 @@ function buildDocumentPage(
       </div>`
     : '';
 
+  const embeddedMarketing = buildEmbeddedMarketingSlidesHtml(estimate, options);
+  const embeddedContacts = buildEmbeddedContactsBlockHtml(estimate, options);
+
   return `
     <div class="pdf-page pdf-page--document">
-      ${buildPageHeaderHtml(estimate, clientLogoSrc)}
-      ${buildSummaryCardsHtml(totals)}
+      ${buildPageHeaderHtml(estimate, clientLogoSrc, options.signature)}
+      ${embeddedMarketing}
       ${descriptionBlock}
+      ${buildSummaryCardsHtml(totals)}
       ${buildTableHtml(estimate)}
       ${buildGrandTotalsHtml(totals)}
       ${buildSignatureBlockHtml(estimate, options.signature)}
+      ${embeddedContacts}
       ${buildFooterHtml()}
     </div>
   `;
@@ -612,8 +650,8 @@ function resolveSlidesLibrary(options: PdfExportOptions): PresentationSlidesLibr
   return options.slidesLibrary ?? createDefaultSlidesLibrary();
 }
 
-/** Selected marketing slides rendered as separate landscape pages before the estimate table. */
-export function buildPresentationSlidesHtml(
+/** Marketing slides as compact widgets after the KP header (before summary cards). */
+export function buildEmbeddedMarketingSlidesHtml(
   estimate: Estimate,
   options: PdfExportOptions = {}
 ): string {
@@ -622,17 +660,35 @@ export function buildPresentationSlidesHtml(
 
   const library = resolveSlidesLibrary(options);
   const parts: string[] = [];
-  if (selected.about) parts.push(buildStandardSlideHtml('about', library.about));
-  if (selected.recognition) parts.push(buildStandardSlideHtml('recognition', library.recognition));
-  if (selected.kiosk) parts.push(buildStandardSlideHtml('kiosk', library.kiosk));
+  if (selected.about) parts.push(buildEmbeddedStandardSlideHtml('about', library.about));
+  if (selected.recognition) {
+    parts.push(buildEmbeddedStandardSlideHtml('recognition', library.recognition));
+  }
+  if (selected.kiosk) parts.push(buildEmbeddedStandardSlideHtml('kiosk', library.kiosk));
   return parts.join('');
+}
+
+/** Contacts slide as a compact closing block before signatures. */
+export function buildEmbeddedContactsBlockHtml(
+  estimate: Estimate,
+  options: PdfExportOptions = {}
+): string {
+  if (estimate.presentationSlides?.contacts !== true) return '';
+  const library = resolveSlidesLibrary(options);
+  return buildEmbeddedContactsSlideHtml(library.contacts);
+}
+
+/** @deprecated Landscape slide pages removed — slides are embedded in the A4 document. */
+export function buildPresentationSlidesHtml(
+  estimate: Estimate,
+  options: PdfExportOptions = {}
+): string {
+  return buildEmbeddedMarketingSlidesHtml(estimate, options);
 }
 
 export function buildPdfHtml(estimate: Estimate, options: PdfExportOptions = {}): string {
   const totals = calculateEstimateTotals(estimate);
-  const slidesHtml = buildPresentationSlidesHtml(estimate, options);
-  const documentHtml = buildDocumentPage(estimate, totals, options);
-  return `${slidesHtml}${documentHtml}`;
+  return buildDocumentPage(estimate, totals, options);
 }
 
 async function waitForImages(container: HTMLElement): Promise<void> {
@@ -707,11 +763,6 @@ async function renderPageToPdf(
 }
 
 export async function exportToPdf(estimate: Estimate, options: PdfExportOptions = {}): Promise<void> {
-  const hasSlides =
-    estimate.presentationSlides?.about === true ||
-    estimate.presentationSlides?.recognition === true ||
-    estimate.presentationSlides?.kiosk === true;
-
   const slidesLibrary = options.slidesLibrary ?? (await loadPresentationSlidesLibrary());
   const resolvedOptions: PdfExportOptions = { ...options, slidesLibrary };
 
@@ -719,7 +770,7 @@ export async function exportToPdf(estimate: Estimate, options: PdfExportOptions 
   container.style.position = 'fixed';
   container.style.left = '-9999px';
   container.style.top = '0';
-  container.style.width = hasSlides ? '1123px' : '794px';
+  container.style.width = '794px';
   container.style.background = '#fff';
 
   const styleEl = document.createElement('style');
@@ -733,39 +784,20 @@ export async function exportToPdf(estimate: Estimate, options: PdfExportOptions 
   try {
     await waitForImages(container);
 
-    const slidePages = Array.from(
-      container.querySelectorAll<HTMLElement>('.pdf-page-slide')
-    );
     const documentPage = container.querySelector<HTMLElement>('.pdf-page--document');
-    if (!documentPage && slidePages.length === 0) return;
+    if (!documentPage) return;
 
-    const startLandscape = slidePages.length > 0;
     const pdf = new jsPDF({
-      orientation: startLandscape ? 'landscape' : 'portrait',
+      orientation: 'portrait',
       unit: 'px',
       format: 'a4',
     });
 
-    let isFirst = true;
-
-    for (const slideEl of slidePages) {
-      await renderPageToPdf(pdf, slideEl, {
-        isFirstPage: isFirst,
-        landscape: true,
-        captureWidth: 1123,
-      });
-      isFirst = false;
-    }
-
-    if (documentPage) {
-      // Ensure document page is measured at portrait width.
-      container.style.width = '794px';
-      await renderPageToPdf(pdf, documentPage, {
-        isFirstPage: isFirst,
-        landscape: false,
-        captureWidth: 794,
-      });
-    }
+    await renderPageToPdf(pdf, documentPage, {
+      isFirstPage: true,
+      landscape: false,
+      captureWidth: 794,
+    });
 
     const safeName = estimate.projectName.replace(/[^\wа-яА-ЯёЁ\s-]/gi, '').trim() || 'kp';
     pdf.save(`КП_${safeName}.pdf`);

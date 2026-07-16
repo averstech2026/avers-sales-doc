@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { Estimate, Section, Task, Rates, RoleHours } from '../types';
+import type { Estimate, Rates, RoleHours, Section, Task } from '../types';
 import { DEFAULT_RATES, EMPTY_HOURS } from '../constants/roles';
+import { createDefaultPresentationSlidesSelection } from './presentationSlides';
 
 export function createTask(
   name: string,
@@ -45,7 +46,7 @@ export function createNewEstimate(
     sections: createDefaultSections(),
     rates: DEFAULT_RATES(),
     clientLogoId: 'none',
-    presentationSlides: { about: false, recognition: false, kiosk: false },
+    presentationSlides: createDefaultPresentationSlidesSelection(),
     isDraft: true,
     createdAt: now,
     updatedAt: now,
@@ -85,6 +86,7 @@ export function buildDuplicateEstimate(source: Estimate): Estimate {
       about: source.presentationSlides?.about === true,
       recognition: source.presentationSlides?.recognition === true,
       kiosk: source.presentationSlides?.kiosk === true,
+      contacts: source.presentationSlides?.contacts === true,
     },
     isDraft: true,
     createdAt: now,

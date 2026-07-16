@@ -81,6 +81,7 @@ export async function saveEstimate(
       about: estimate.presentationSlides.about === true,
       recognition: estimate.presentationSlides.recognition === true,
       kiosk: estimate.presentationSlides.kiosk === true,
+      contacts: estimate.presentationSlides.contacts === true,
     };
   }
   if (estimate.isDraft !== undefined) {
@@ -221,6 +222,7 @@ export async function toggleArchiveEstimate(
       about: estimate.presentationSlides.about === true,
       recognition: estimate.presentationSlides.recognition === true,
       kiosk: estimate.presentationSlides.kiosk === true,
+      contacts: estimate.presentationSlides.contacts === true,
     };
   }
   if (estimate.isDraft !== undefined) {

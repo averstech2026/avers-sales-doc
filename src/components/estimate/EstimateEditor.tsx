@@ -157,7 +157,7 @@ export function EstimateEditor({ estimate, onChange }: EstimateEditorProps) {
 
           name: `${num}. Новый этап`,
 
-          tasks: [{ id: uuidv4(), name: 'Новая задача', description: '', hours: { ...EMPTY_HOURS } }],
+          tasks: [{ id: uuidv4(), name: '', description: '', hours: { ...EMPTY_HOURS } }],
 
         },
 
@@ -179,20 +179,13 @@ export function EstimateEditor({ estimate, onChange }: EstimateEditorProps) {
 
 
 
-  const addTask = (sectionId: string) => {
-
+  const addTask = (sectionId: string, name: string) => {
     updateSection(sectionId, {
-
       tasks: [
-
         ...(estimate.sections.find((s) => s.id === sectionId)?.tasks || []),
-
-        { id: uuidv4(), name: 'Новая задача', description: '', hours: { ...EMPTY_HOURS } },
-
+        { id: uuidv4(), name, description: '', hours: { ...EMPTY_HOURS } },
       ],
-
     });
-
   };
 
 
@@ -377,7 +370,7 @@ export function EstimateEditor({ estimate, onChange }: EstimateEditorProps) {
 
                   onRemoveSection={() => removeSection(section.id)}
 
-                  onAddTask={() => addTask(section.id)}
+                  onAddTask={(name) => addTask(section.id, name)}
 
                   onRemoveTask={(taskId) => removeTask(section.id, taskId)}
 
@@ -412,55 +405,75 @@ export function EstimateEditor({ estimate, onChange }: EstimateEditorProps) {
 
 
 interface SectionBlockProps {
-
   section: Section;
-
   sectionTotals: ReturnType<typeof calculateSectionTotals>;
-
   rates: Rates;
-
   onSectionNameChange: (name: string) => void;
-
   onRemoveSection: () => void;
-
-  onAddTask: () => void;
-
+  onAddTask: (name: string) => void;
   onRemoveTask: (taskId: string) => void;
-
   onTaskChange: (taskId: string, patch: Partial<Task>) => void;
-
   onHoursChange: (taskId: string, roleId: keyof Rates, value: number) => void;
-
 }
 
-
-
 function SectionBlock({
-
   section,
-
   sectionTotals,
-
   rates,
-
   onSectionNameChange,
-
   onRemoveSection,
-
   onAddTask,
-
   onRemoveTask,
-
   onTaskChange,
-
   onHoursChange,
-
 }: SectionBlockProps) {
+  const [isAddingTask, setIsAddingTask] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const draftContainerRef = useRef<HTMLDivElement>(null);
+  const draftInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isAddingTask) return;
+    const frame = requestAnimationFrame(() => {
+      draftInputRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isAddingTask]);
+
+  useEffect(() => {
+    if (!isAddingTask) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (draftContainerRef.current?.contains(event.target as Node)) return;
+      setIsAddingTask(false);
+      setDraftName('');
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [isAddingTask]);
+
+  const handleStartAddTask = () => {
+    setDraftName('');
+    setIsAddingTask(true);
+  };
+
+  const handleSaveNewTask = () => {
+    const name = draftName.trim();
+    if (name) {
+      onAddTask(name);
+    }
+    setIsAddingTask(false);
+    setDraftName('');
+  };
+
+  const handleCancelNewTask = () => {
+    setIsAddingTask(false);
+    setDraftName('');
+  };
 
   return (
-
     <>
-
       <div className="estimate-row-grid estimate-table__section-row" role="row">
         <div className="estimate-grid__section-name" role="cell">
           <input
@@ -475,8 +488,6 @@ function SectionBlock({
         </div>
       </div>
 
-
-
       {section.tasks.map((task) => (
         <TaskRow
           key={task.id}
@@ -488,16 +499,49 @@ function SectionBlock({
         />
       ))}
 
-
+      {isAddingTask && (
+        <div ref={draftContainerRef} className="task-edit-container" role="form" aria-label="Новая задача">
+          <div className="task-input-wrapper">
+            <input
+              ref={draftInputRef}
+              type="text"
+              className="task-inline-input"
+              placeholder="Введите название задачи..."
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveNewTask();
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleCancelNewTask();
+                }
+              }}
+              aria-label="Название новой задачи"
+            />
+          </div>
+          <div className="task-control-buttons">
+            <button type="button" className="btn-save-task" onClick={handleSaveNewTask}>
+              Сохранить
+            </button>
+            <button type="button" className="btn-cancel-task" onClick={handleCancelNewTask}>
+              Отмена
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="estimate-table__add-row">
-
-        <button type="button" className="estimate-editor__add-btn" onClick={onAddTask}>
-
+        <button
+          type="button"
+          className="estimate-editor__add-btn"
+          onClick={handleStartAddTask}
+          disabled={isAddingTask}
+        >
           + Добавить задачу
-
         </button>
-
       </div>
 
 

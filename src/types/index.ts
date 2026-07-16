@@ -63,12 +63,14 @@ export interface EstimateAuthorMeta {
 }
 
 /** Marketing presentation slides attached to a commercial proposal PDF */
-export type PresentationSlideId = 'about' | 'recognition' | 'kiosk';
+export type PresentationSlideId = 'about' | 'recognition' | 'kiosk' | 'contacts';
 
 export interface PresentationSlides {
   about: boolean;
   recognition: boolean;
   kiosk: boolean;
+  /** Final contacts slide — on by default for new estimates */
+  contacts: boolean;
 }
 
 export interface Estimate {

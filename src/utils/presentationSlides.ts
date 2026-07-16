@@ -1,4 +1,4 @@
-export type PresentationSlideId = 'about' | 'recognition' | 'kiosk';
+export type PresentationSlideId = 'about' | 'recognition' | 'kiosk' | 'contacts';
 
 /** Editable content of one KP slide (same layout for all slides). */
 export interface PresentationSlideContent {
@@ -17,10 +17,23 @@ export interface PresentationSlideContent {
   qrImageDataUrl: string | null;
 }
 
+/** Final contacts slide — distinct layout (address + map + brand footer). */
+export interface ContactsSlideContent {
+  title: string;
+  address: string;
+  site: string;
+  phone: string;
+  email: string;
+  mapImageDataUrl: string | null;
+}
+
+export type AnySlideContent = PresentationSlideContent | ContactsSlideContent;
+
 export interface PresentationSlidesLibrary {
   about: PresentationSlideContent;
   recognition: PresentationSlideContent;
   kiosk: PresentationSlideContent;
+  contacts: ContactsSlideContent;
   updatedAt?: string;
   updatedByUid?: string;
   updatedByName?: string;
@@ -32,6 +45,8 @@ export interface PresentationSlideDef {
   menuDescription: string;
   defaultImageFile: string;
   defaultQrFile?: string;
+  /** Contacts slide uses a dedicated layout */
+  layout?: 'standard' | 'contacts';
 }
 
 export const PRESENTATION_SLIDES_SETTINGS_DOC = 'presentation_slides';
@@ -56,13 +71,44 @@ export const PRESENTATION_SLIDE_DEFS: PresentationSlideDef[] = [
     menuDescription: 'Интерактивный киоск заказа «как в Макдоналдс».',
     defaultImageFile: 'self-service-kiosk.png',
   },
+  {
+    id: 'contacts',
+    menuTitle: 'Контакты',
+    menuDescription: 'Контакты и карта проезда — лаконичное завершение сметы под подписями.',
+    defaultImageFile: 'map-location.jpg',
+    layout: 'contacts',
+  },
 ];
+
+export function isContactsSlideId(id: PresentationSlideId): id is 'contacts' {
+  return id === 'contacts';
+}
+
+export function isContactsContent(content: AnySlideContent): content is ContactsSlideContent {
+  return 'address' in content && 'phone' in content && 'email' in content;
+}
 
 export function defaultSlideAssetUrl(fileName: string): string {
   return `${import.meta.env.BASE_URL}assets/slides/${fileName}`;
 }
 
-export function createDefaultSlideContent(id: PresentationSlideId): PresentationSlideContent {
+export function createDefaultContactsSlideContent(): ContactsSlideContent {
+  return {
+    title: 'Контакты компании',
+    address: 'г. Москва, Щелковское шоссе д. 5, стр. 1, офис 726.',
+    site: 'https://www.averstech.ru',
+    phone: '+7 (495) 215-03-47',
+    email: 'mail@averstech.ru',
+    mapImageDataUrl: null,
+  };
+}
+
+/** Display label for site link (without protocol). */
+export function formatContactsSiteLabel(site: string): string {
+  return site.trim().replace(/^https?:\/\//i, '').replace(/\/$/, '');
+}
+
+export function createDefaultSlideContent(id: Exclude<PresentationSlideId, 'contacts'>): PresentationSlideContent {
   if (id === 'recognition') {
     return {
       title: 'Система распознавания еды',
@@ -131,7 +177,18 @@ export function createDefaultSlidesLibrary(): PresentationSlidesLibrary {
     about: createDefaultSlideContent('about'),
     recognition: createDefaultSlideContent('recognition'),
     kiosk: createDefaultSlideContent('kiosk'),
+    contacts: createDefaultContactsSlideContent(),
   };
+}
+
+/** Default KP constructor checkboxes for a new estimate (contacts on). */
+export function createDefaultPresentationSlidesSelection(): {
+  about: boolean;
+  recognition: boolean;
+  kiosk: boolean;
+  contacts: boolean;
+} {
+  return { about: false, recognition: false, kiosk: false, contacts: true };
 }
 
 function asString(value: unknown, fallback = ''): string {
@@ -143,7 +200,7 @@ function asNullableString(value: unknown): string | null {
 }
 
 export function normalizeSlideContent(
-  id: PresentationSlideId,
+  id: Exclude<PresentationSlideId, 'contacts'>,
   raw?: Partial<PresentationSlideContent> | null
 ): PresentationSlideContent {
   const base = createDefaultSlideContent(id);
@@ -159,6 +216,22 @@ export function normalizeSlideContent(
     imageDataUrl: raw.imageDataUrl === undefined ? base.imageDataUrl : asNullableString(raw.imageDataUrl),
     qrImageDataUrl:
       raw.qrImageDataUrl === undefined ? base.qrImageDataUrl : asNullableString(raw.qrImageDataUrl),
+  };
+}
+
+export function normalizeContactsSlideContent(
+  raw?: Partial<ContactsSlideContent> | null
+): ContactsSlideContent {
+  const base = createDefaultContactsSlideContent();
+  if (!raw) return base;
+  return {
+    title: asString(raw.title, base.title),
+    address: asString(raw.address, base.address),
+    site: asString(raw.site, base.site),
+    phone: asString(raw.phone, base.phone),
+    email: asString(raw.email, base.email),
+    mapImageDataUrl:
+      raw.mapImageDataUrl === undefined ? base.mapImageDataUrl : asNullableString(raw.mapImageDataUrl),
   };
 }
 
@@ -181,6 +254,9 @@ export function normalizeSlidesLibrary(raw: Record<string, unknown> | null): Pre
     'kiosk',
     (slidesRaw.kiosk as Partial<PresentationSlideContent> | undefined) ?? undefined
   );
+  const contacts = normalizeContactsSlideContent(
+    (slidesRaw.contacts as Partial<ContactsSlideContent> | undefined) ?? undefined
+  );
 
   // Legacy flat image fields
   if (!about.imageDataUrl && typeof raw.aboutImageDataUrl === 'string') {
@@ -197,6 +273,7 @@ export function normalizeSlidesLibrary(raw: Record<string, unknown> | null): Pre
     about,
     recognition,
     kiosk,
+    contacts,
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : undefined,
     updatedByUid: typeof raw.updatedByUid === 'string' ? raw.updatedByUid : undefined,
     updatedByName: typeof raw.updatedByName === 'string' ? raw.updatedByName : undefined,
@@ -212,16 +289,21 @@ export function parseBulletLines(text: string): string[] {
 
 export function resolveSlideImageSrc(
   slide: PresentationSlideContent,
-  id: PresentationSlideId
+  id: Exclude<PresentationSlideId, 'contacts'>
 ): string {
   if (slide.imageDataUrl?.trim()) return slide.imageDataUrl;
   const def = PRESENTATION_SLIDE_DEFS.find((item) => item.id === id);
   return defaultSlideAssetUrl(def?.defaultImageFile ?? 'dev-team.png');
 }
 
+export function resolveContactsMapSrc(slide: ContactsSlideContent): string {
+  if (slide.mapImageDataUrl?.trim()) return slide.mapImageDataUrl;
+  return defaultSlideAssetUrl('map-location.jpg');
+}
+
 export function resolveSlideQrSrc(
   slide: PresentationSlideContent,
-  id: PresentationSlideId
+  id: Exclude<PresentationSlideId, 'contacts'>
 ): string | null {
   if (!slide.qrCaption.trim()) return null;
   if (slide.qrImageDataUrl?.trim()) return slide.qrImageDataUrl;
@@ -230,8 +312,16 @@ export function resolveSlideQrSrc(
   return defaultSlideAssetUrl('qr-video.png');
 }
 
-export function slideHasCustomImage(slide: PresentationSlideContent): boolean {
+export function slideHasCustomImage(slide: AnySlideContent): boolean {
+  if (isContactsContent(slide)) {
+    return Boolean(slide.mapImageDataUrl?.trim());
+  }
   return Boolean(slide.imageDataUrl?.trim());
+}
+
+export function phoneToTelHref(phone: string): string {
+  const digits = phone.replace(/[^\d+]/g, '');
+  return `tel:${digits.startsWith('+') ? digits : `+${digits}`}`;
 }
 
 const DEFAULT_MAX_PHOTO_CHARS = 280_000;

@@ -19,6 +19,16 @@ interface PdfPreviewModalProps {
   onError?: () => void;
 }
 
+function hasAnySlide(estimate: Estimate): boolean {
+  const s = estimate.presentationSlides;
+  return (
+    s?.about === true ||
+    s?.recognition === true ||
+    s?.kiosk === true ||
+    s?.contacts === true
+  );
+}
+
 export function PdfPreviewModal({
   open,
   estimate,
@@ -29,11 +39,7 @@ export function PdfPreviewModal({
 }: PdfPreviewModalProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
-
-  const hasSlides =
-    estimate.presentationSlides?.about === true ||
-    estimate.presentationSlides?.recognition === true ||
-    estimate.presentationSlides?.kiosk === true;
+  const slidesOn = hasAnySlide(estimate);
 
   useEffect(() => {
     if (!open || !sheetRef.current) return;
@@ -80,8 +86,8 @@ export function PdfPreviewModal({
         <div className="pdf-preview__toolbar">
           <p className="pdf-preview__hint">
             Так будет выглядеть коммерческое предложение после экспорта.
-            {hasSlides
-              ? ' Выбранные презентационные слайды идут перед таблицей расчётов.'
+            {slidesOn
+              ? ' Выбранные слайды встраиваются в документ: маркетинговые — после шапки, «Контакты» — под подписями.'
               : ''}
           </p>
           <div className="pdf-preview__actions">
@@ -99,10 +105,7 @@ export function PdfPreviewModal({
           </div>
         </div>
         <div className="pdf-preview__viewport">
-          <div
-            className={`pdf-preview__sheet${hasSlides ? ' pdf-preview__sheet--with-slides' : ''}`}
-            ref={sheetRef}
-          />
+          <div className="pdf-preview__sheet" ref={sheetRef} />
         </div>
       </div>
     </Modal>

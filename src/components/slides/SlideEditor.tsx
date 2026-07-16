@@ -9,7 +9,7 @@ import {
 import { SlideCanvas } from './SlideCanvas';
 
 interface SlideEditorProps {
-  id: PresentationSlideId;
+  id: Exclude<PresentationSlideId, 'contacts'>;
   menuTitle: string;
   initial: PresentationSlideContent;
   saving: boolean;

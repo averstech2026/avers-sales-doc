@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CornerFrame } from '../components/ui/CornerFrame';
 import { SlideCanvas } from '../components/slides/SlideCanvas';
 import { SlideEditor } from '../components/slides/SlideEditor';
+import { ContactsSlideEditor } from '../components/slides/ContactsSlideEditor';
 import { useAuth } from '../context/AuthContext';
 import {
   loadPresentationSlidesLibrary,
@@ -10,7 +11,10 @@ import {
 import {
   PRESENTATION_SLIDE_DEFS,
   createDefaultSlidesLibrary,
+  isContactsSlideId,
   slideHasCustomImage,
+  type AnySlideContent,
+  type ContactsSlideContent,
   type PresentationSlideContent,
   type PresentationSlideId,
   type PresentationSlidesLibrary,
@@ -49,7 +53,7 @@ export function SlidesPage() {
     void load();
   }, [load]);
 
-  const handleSave = async (content: PresentationSlideContent) => {
+  const handleSave = async (content: AnySlideContent) => {
     if (!user || !editingId) return;
     setSaving(true);
     setError('');
@@ -71,15 +75,31 @@ export function SlidesPage() {
 
   if (editingId) {
     const def = PRESENTATION_SLIDE_DEFS.find((item) => item.id === editingId)!;
+    if (isContactsSlideId(editingId)) {
+      return (
+        <div className="page slides-page">
+          <ContactsSlideEditor
+            key={editingId}
+            menuTitle={def.menuTitle}
+            initial={library.contacts}
+            saving={saving}
+            onSave={(content) => handleSave(content)}
+            onCancel={() => setEditingId(null)}
+          />
+          {error && <p className="slides-registry__error">{error}</p>}
+        </div>
+      );
+    }
+
     return (
       <div className="page slides-page">
         <SlideEditor
           key={editingId}
           id={editingId}
           menuTitle={def.menuTitle}
-          initial={library[editingId]}
+          initial={library[editingId] as PresentationSlideContent}
           saving={saving}
-          onSave={handleSave}
+          onSave={(content) => handleSave(content)}
           onCancel={() => setEditingId(null)}
         />
         {error && <p className="slides-registry__error">{error}</p>}
@@ -93,7 +113,7 @@ export function SlidesPage() {
         <div>
           <h1>Слайды КП</h1>
           <p className="page-header__sub">
-            Редактор презентационных слайдов с единой компоновкой: заголовок, тексты и фото.
+            Редактор презентационных слайдов: стандартная компоновка и финальный слайд «Контакты».
           </p>
         </div>
       </header>
@@ -110,19 +130,27 @@ export function SlidesPage() {
               {PRESENTATION_SLIDE_DEFS.map((def) => {
                 const content = library[def.id];
                 const custom = slideHasCustomImage(content);
+                const titleHint = isContactsSlideId(def.id)
+                  ? (content as ContactsSlideContent).address || '—'
+                  : (content as PresentationSlideContent).title || '—';
                 return (
                   <article key={def.id} className="slide-asset-card">
                     <div className="slide-asset-card__preview slide-asset-card__preview--canvas">
                       <div className="slide-asset-card__mini">
                         <SlideCanvas id={def.id} content={content} />
                       </div>
-                      {custom && <span className="slide-asset-card__badge">Своё фото</span>}
+                      {custom && (
+                        <span className="slide-asset-card__badge">
+                          {isContactsSlideId(def.id) ? 'Своя карта' : 'Своё фото'}
+                        </span>
+                      )}
                     </div>
                     <div className="slide-asset-card__body">
                       <h2 className="slide-asset-card__title">{def.menuTitle}</h2>
                       <p className="slide-asset-card__desc">{def.menuDescription}</p>
                       <p className="slide-asset-card__hint">
-                        Заголовок: {content.title || '—'}
+                        {isContactsSlideId(def.id) ? 'Адрес: ' : 'Заголовок: '}
+                        {titleHint}
                       </p>
                       <div className="slide-asset-card__actions">
                         <button

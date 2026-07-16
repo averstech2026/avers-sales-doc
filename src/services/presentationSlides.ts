@@ -4,7 +4,10 @@ import { COLLECTIONS } from '../constants/roles';
 import {
   PRESENTATION_SLIDES_SETTINGS_DOC,
   createDefaultSlidesLibrary,
+  isContactsSlideId,
   normalizeSlidesLibrary,
+  type AnySlideContent,
+  type ContactsSlideContent,
   type PresentationSlideContent,
   type PresentationSlideId,
   type PresentationSlidesLibrary,
@@ -66,9 +69,18 @@ export async function ensurePresentationSlideAssets() {
   return library;
 }
 
+function slidesPayload(library: PresentationSlidesLibrary) {
+  return {
+    about: library.about,
+    recognition: library.recognition,
+    kiosk: library.kiosk,
+    contacts: library.contacts,
+  };
+}
+
 export async function savePresentationSlide(
   id: PresentationSlideId,
-  content: PresentationSlideContent,
+  content: AnySlideContent,
   meta?: { uid?: string; name?: string }
 ): Promise<PresentationSlidesLibrary> {
   if (!isFirebaseConfigured()) {
@@ -79,7 +91,9 @@ export async function savePresentationSlide(
   const now = new Date().toISOString();
   const next: PresentationSlidesLibrary = {
     ...current,
-    [id]: content,
+    ...(isContactsSlideId(id)
+      ? { contacts: content as ContactsSlideContent }
+      : { [id]: content as PresentationSlideContent }),
     updatedAt: now,
     updatedByUid: meta?.uid,
     updatedByName: meta?.name,
@@ -89,11 +103,7 @@ export async function savePresentationSlide(
   await setDoc(
     doc(db, COLLECTIONS.settings, PRESENTATION_SLIDES_SETTINGS_DOC),
     {
-      slides: {
-        about: next.about,
-        recognition: next.recognition,
-        kiosk: next.kiosk,
-      },
+      slides: slidesPayload(next),
       updatedAt: now,
       updatedByUid: meta?.uid ?? null,
       updatedByName: meta?.name ?? null,
@@ -123,11 +133,7 @@ export async function savePresentationSlidesLibrary(
 
   const db = getDb();
   await setDoc(doc(db, COLLECTIONS.settings, PRESENTATION_SLIDES_SETTINGS_DOC), {
-    slides: {
-      about: next.about,
-      recognition: next.recognition,
-      kiosk: next.kiosk,
-    },
+    slides: slidesPayload(next),
     updatedAt: now,
     updatedByUid: meta?.uid ?? null,
     updatedByName: meta?.name ?? null,
