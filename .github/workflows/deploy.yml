@@ -3,6 +3,7 @@ name: Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: deploy-main
@@ -13,26 +14,30 @@ permissions:
 
 jobs:
   deploy:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
       - name: Bump version
+        # Re-run поверх уже задеплоенного main ломает push — версию бампаем только с 1-й попытки.
+        if: ${{ github.run_attempt == 1 }}
         run: node scripts/bump-version.mjs
         env:
-          DEPLOY_NOTES: ${{ github.event.head_commit.message }}
+          DEPLOY_NOTES: ${{ github.event.head_commit.message || github.event_name }}
 
       - name: Build
         run: npm run build
@@ -54,10 +59,12 @@ jobs:
           publish_dir: ./dist
 
       - name: Commit version bump
+        if: ${{ github.run_attempt == 1 }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add version.json package.json package-lock.json src/constants/version.data.ts
           git diff --staged --quiet && echo "No version changes to commit" && exit 0
           git commit -m "chore: release v$(node -p "JSON.parse(require('node:fs').readFileSync('package.json','utf8')).version") [skip ci]"
+          git pull --rebase origin main
           git push
