@@ -30,7 +30,7 @@ export function AuthContainer() {
       <div className="auth-container__backdrop" aria-hidden="true" />
       <CornerFrame className="auth-card">
         <div className="auth-card__brand">
-          <h1>Генератор смет</h1>
+          <h1>Конструктор смет и КП</h1>
           <p className="auth-card__subtitle">ООО «Аверс Технолоджи»</p>
         </div>
 

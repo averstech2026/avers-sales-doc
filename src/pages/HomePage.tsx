@@ -269,7 +269,7 @@ export function HomePage() {
     <div className="page home-page">
       <header className="page-header">
         <div>
-          <h1>Генератор смет</h1>
+          <h1>Конструктор смет и КП</h1>
           <p className="page-header__sub">
             Интерактивный расчёт бюджета проектов ООО «Аверс Технолоджи»
           </p>
