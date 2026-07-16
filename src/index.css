@@ -2094,7 +2094,7 @@ body.role-user .personalization-section {
 .estimate-header-grid {
   background: var(--color-table-header, var(--color-navy));
   color: var(--color-text-on-dark);
-  border-bottom: 2px solid var(--color-estimate-rule);
+  border-bottom: 1.5px solid var(--color-estimate-rule);
 }
 
 .estimate-grid__head {
@@ -2193,7 +2193,7 @@ body.role-user .personalization-section {
 
 .estimate-table__section-row {
   background: var(--color-surface-muted);
-  border-top: 2px solid var(--color-estimate-rule);
+  border-top: 1.5px solid var(--color-estimate-rule);
   border-bottom: 1px solid var(--color-border);
   grid-template-columns: minmax(0, 1fr) var(--estimate-actions-col-width);
 }
@@ -2843,7 +2843,7 @@ body.role-user .personalization-section {
 }
 
 .grand-total-row--final {
-  border-top: 2px solid var(--color-estimate-rule);
+  border-top: 1.5px solid var(--color-estimate-rule);
   margin-top: 8px;
   padding-top: 12px;
   font-size: 18px;
@@ -4768,23 +4768,28 @@ code {
   text-align: left;
 }
 
+.slide-title-block {
+  display: inline-block;
+  max-width: 100%;
+  margin-bottom: 12px;
+  vertical-align: top;
+}
+
 .slide-title {
   font-size: 24px;
   font-weight: 800;
   color: #0c1c3f;
   text-transform: uppercase;
-  margin: 0 0 12px 0;
+  margin: 0 0 4px 0;
   letter-spacing: -0.5px;
   text-align: left;
   line-height: 1.2;
 }
 
 .slide-header-line {
-  height: 3px;
+  height: 1.5px;
   background-color: var(--color-accent, #ef4444);
-  /* До начала левого уголка фото: text-col (1.1/2) + gap 40px */
-  width: calc((100% - 40px) * 0.55 + 40px);
-  max-width: 100%;
+  width: 100%;
   border: none;
 }
 
@@ -5236,7 +5241,7 @@ code {
   box-sizing: border-box;
   margin-top: 40px;
   padding-top: 30px;
-  border-top: 2px solid #ef4444;
+  border-top: 1.5px solid #ef4444;
 }
 
 .footer-integration-grid {

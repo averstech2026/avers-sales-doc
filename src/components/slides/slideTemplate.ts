@@ -66,22 +66,26 @@ export function standardSlideCss(): string {
       flex-shrink: 0;
       text-align: left;
     }
+    .slide-title-block {
+      display: inline-block;
+      max-width: 100%;
+      margin-bottom: 12px;
+      vertical-align: top;
+    }
     .slide-title {
       font-size: 24px;
       font-weight: 800;
       color: #0c1c3f;
       text-transform: uppercase;
-      margin: 0 0 12px 0;
+      margin: 0 0 4px 0;
       letter-spacing: -0.5px;
       text-align: left;
       line-height: 1.2;
     }
     .slide-header-line {
-      height: 3px;
+      height: 1.5px;
       background-color: ${accent};
-      /* До начала левого уголка фото: text-col (1.1/2) + gap 40px */
-      width: calc((100% - 40px) * 0.55 + 40px);
-      max-width: 100%;
+      width: 100%;
       border: none;
     }
 
@@ -401,13 +405,18 @@ export function standardSlideCss(): string {
       color: #000000 !important;
       text-transform: uppercase;
       letter-spacing: 1px;
-      margin: 0 0 12px 0 !important;
+      margin: 0 0 4px 0 !important;
       text-align: center !important;
     }
+    .contact-header-center .slide-title-block {
+      margin-left: auto;
+      margin-right: auto;
+      margin-bottom: 0;
+    }
     .slide-header-line-red {
-      height: 4px;
+      height: 1.5px;
       background-color: ${accent};
-      width: 80%;
+      width: 100%;
       border: none;
     }
 
@@ -516,6 +525,12 @@ export function embeddedSlideCss(): string {
     .kp-embedded-slide-block + .kp-embedded-slide-block {
       border-top: none;
     }
+    .embedded-slide-title-block {
+      display: inline-block;
+      max-width: 100%;
+      margin-bottom: 12px;
+      vertical-align: top;
+    }
     /* Match .pdf-section-title */
     .embedded-slide-title {
       font-family: inherit;
@@ -530,12 +545,9 @@ export function embeddedSlideCss(): string {
     }
     /* Match .pdf-section-accent */
     .embedded-slide-accent {
-      /* До начала колонки с фото в embedded-сетке 1.2fr / 0.8fr, gap 28px */
-      width: calc((100% - 28px) * 1.2 / 2 + 28px);
-      max-width: 100%;
-      height: 2px;
+      width: 100%;
+      height: 1.5px;
       background: ${accent};
-      margin-bottom: 12px;
     }
     .embedded-slide-badge {
       display: inline-flex;
@@ -741,7 +753,7 @@ export function unifiedFooterSectionCss(): string {
       box-sizing: border-box;
       margin-top: 40px;
       padding-top: 30px;
-      border-top: 2px solid #ef4444;
+      border-top: 1.5px solid #ef4444;
       page-break-inside: avoid;
     }
     .footer-integration-grid {
@@ -996,8 +1008,10 @@ export function buildEmbeddedStandardSlideHtml(
 
   return `
     <div class="kp-embedded-slide-block" data-slide="${id}" style="${escapeHtml(chipColorStyleAttr(content))}">
-      <h2 class="embedded-slide-title">${escapeHtml(content.title || 'Заголовок')}</h2>
-      <div class="embedded-slide-accent"></div>
+      <div class="embedded-slide-title-block">
+        <h2 class="embedded-slide-title">${escapeHtml(content.title || 'Заголовок')}</h2>
+        <div class="embedded-slide-accent"></div>
+      </div>
       ${badgeHtml}
       ${leadHtml}
       ${
@@ -1086,9 +1100,11 @@ export function buildStandardSlideHtml(
   return `
     <div class="pdf-page pdf-page-slide kp-slide presentation-slide" data-slide="${id}" style="${escapeHtml(chipColorStyleAttr(content))}">
       <div class="slide-header">
-        <h1 class="slide-title">${escapeHtml(content.title)}</h1>
+        <div class="slide-title-block">
+          <h1 class="slide-title">${escapeHtml(content.title)}</h1>
+          <div class="slide-header-line"></div>
+        </div>
         ${badgeHtml}
-        <div class="slide-header-line"></div>
       </div>
 
       <div class="slide-content-grid${showLead ? ' slide-content-grid--with-lead' : ''}">
@@ -1126,8 +1142,10 @@ export function buildContactsSlideHtml(content: ContactsSlideContent): string {
       </div>
 
       <div class="slide-header contact-header-center">
-        <h1 class="slide-title contact-slide-title">${escapeHtml(content.title || 'КОНТАКТЫ')}</h1>
-        <div class="slide-header-line-red"></div>
+        <div class="slide-title-block">
+          <h1 class="slide-title contact-slide-title">${escapeHtml(content.title || 'КОНТАКТЫ')}</h1>
+          <div class="slide-header-line-red"></div>
+        </div>
       </div>
 
       <div class="contacts-grid">

@@ -483,8 +483,10 @@ export function StandardEstimateEditor({ estimate, onChange }: StandardEstimateE
         </label>
       </div>
 
-      <h2 className="specification-main-title">Спецификация</h2>
-      <div className="specification-main-accent" aria-hidden="true" />
+      <div className="specification-main-heading">
+        <h2 className="specification-main-title">Спецификация</h2>
+        <div className="specification-main-accent" aria-hidden="true" />
+      </div>
 
       {/* Секция 1: ПО */}
       <section className="estimate-section">

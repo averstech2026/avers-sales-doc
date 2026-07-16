@@ -68,7 +68,7 @@ export function pdfStyles(): string {
     .pdf-header {
       display: flex;
       flex-direction: column;
-      border-bottom: 1.5px solid ${c.accent};
+      border-bottom: 1.5px solid #f1f5f9;
       padding-bottom: 24px;
       margin-bottom: 24px;
     }
@@ -201,22 +201,31 @@ export function pdfStyles(): string {
     .pdf-estimation-details-header {
       margin-top: 35px;
       margin-bottom: 15px;
+      display: inline-block;
+      max-width: 100%;
+      vertical-align: top;
     }
     .pdf-section-title {
       font-size: 15px;
       font-weight: 700;
       color: ${c.text};
-      text-transform: none;
-      margin: 0 0 6px;
+      text-transform: uppercase;
+      margin: 0 0 4px;
     }
     .pdf-section-accent {
-      width: 60px;
-      height: 2px;
+      width: 100%;
+      height: 1.5px;
       background: ${c.accent};
       margin-bottom: 0;
     }
 
     /* Иерархия заголовков: Спецификация (H2) — как .embedded-slide-title */
+    .specification-main-heading {
+      display: inline-block;
+      max-width: 100%;
+      margin: 32px 0 24px;
+      vertical-align: top;
+    }
     .specification-main-title {
       font-family: inherit;
       font-size: 13px;
@@ -224,16 +233,15 @@ export function pdfStyles(): string {
       text-transform: uppercase;
       letter-spacing: 0;
       color: #0f172a;
-      margin: 32px 0 4px;
+      margin: 0 0 4px;
       line-height: 1.2;
       padding-bottom: 0;
     }
     /* Как .embedded-slide-accent / .pdf-section-accent */
     .specification-main-accent {
-      width: 60px;
-      height: 2px;
+      width: 100%;
+      height: 1.5px;
       background: ${c.accent};
-      margin-bottom: 24px;
     }
     .section-sub-title {
       display: flex;
@@ -258,7 +266,8 @@ export function pdfStyles(): string {
       font-size: 14px;
       line-height: 1;
     }
-    .specification-main-accent + .section-sub-title {
+    .specification-main-heading + .estimate-section .section-sub-title,
+    .specification-main-heading + .section-sub-title {
       margin-top: 0;
     }
     .pdf-table-wrap { overflow-x: auto; }
@@ -289,7 +298,7 @@ export function pdfStyles(): string {
       font-weight: 700;
       font-size: 11px;
       background: ${c.bg};
-      border-top: 2px solid ${c.accent};
+      border-top: 1.5px solid ${c.accent};
     }
     .pdf-table .total-row td {
       padding: 7px 6px;
@@ -297,7 +306,7 @@ export function pdfStyles(): string {
       font-size: 10px;
       background: ${TOTAL_ROW_BG};
       color: ${c.accent};
-      border-bottom: 2px solid ${c.accent};
+      border-bottom: 1.5px solid ${c.accent};
     }
     .pdf-table .total-row td:last-child {
       text-align: right;
@@ -331,7 +340,7 @@ export function pdfStyles(): string {
       color: ${c.text};
       margin-top: 6px;
       padding-top: 8px;
-      border-top: 2px solid ${c.accent};
+      border-top: 1.5px solid ${c.accent};
     }
     .pdf-grand-totals__final strong {
       color: ${c.accent};
@@ -510,7 +519,7 @@ export function pdfStyles(): string {
       font-style: italic;
       margin: 2px 0;
       padding-left: 6px;
-      border-left: 2px solid #ef4444;
+      border-left: 1.5px solid #ef4444;
       line-height: 1.35;
     }
     .item-desc {
@@ -576,9 +585,15 @@ function pdfLogoImg(src: string, alt: string, className: string): string {
 }
 
 function resolveAbsoluteUrl(src: string): string {
-  if (src.startsWith('data:') || src.startsWith('http')) return src;
-  const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
-  return new URL(src.replace(/^\//, ''), base).href;
+  if (!src) return src;
+  if (src.startsWith('data:') || src.startsWith('blob:')) return src;
+  if (/^https?:\/\//i.test(src)) return src;
+  // Vite BASE_URL paths already include the deploy prefix (e.g. /avers-sales-doc/logos/...).
+  // Resolve against origin only — never against pathname, or the prefix is doubled in prod.
+  if (src.startsWith('/')) {
+    return `${window.location.origin}${src}`;
+  }
+  return new URL(src, `${window.location.origin}${import.meta.env.BASE_URL}`).href;
 }
 
 /** Hide broken images so alt icons never appear in preview/PDF. */
@@ -806,8 +821,10 @@ function buildStandardTableHtml(estimate: Estimate): string {
   const servicesTotal = services.reduce((sum, item) => sum + calculateLineTotal(item), 0);
 
   return `
-    <h2 class="specification-main-title">Спецификация</h2>
-    <div class="specification-main-accent"></div>
+    <div class="specification-main-heading">
+      <h2 class="specification-main-title">Спецификация</h2>
+      <div class="specification-main-accent"></div>
+    </div>
     ${buildStandardSpecTableHtml(
       'Программное обеспечение',
       '💿',

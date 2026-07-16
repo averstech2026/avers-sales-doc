@@ -96,14 +96,16 @@ function StandardSlideCanvas({
       style={chipVars as CSSProperties}
     >
       <div className="slide-header">
-        <h1 className="slide-title">{content.title || 'Заголовок слайда'}</h1>
+        <div className="slide-title-block">
+          <h1 className="slide-title">{content.title || 'Заголовок слайда'}</h1>
+          <div className="slide-header-line" />
+        </div>
         {showBadge && (
           <div className="kp-slide__badge">
             <SlideBadgeIcon iconId={content.badgeIcon} />
             <span className="kp-slide__badge-text">{content.badge}</span>
           </div>
         )}
-        <div className="slide-header-line" />
       </div>
 
       <div
