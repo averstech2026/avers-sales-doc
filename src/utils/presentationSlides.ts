@@ -159,20 +159,20 @@ export const PRESENTATION_SLIDE_DEFS: PresentationSlideDef[] = [
     id: 'about',
     menuTitle: 'О компании',
     menuDescription: 'Команда, экспертиза и ключевые решения Аверс Технолоджи.',
-    defaultImageFile: 'dev-team.png',
+    defaultImageFile: 'dev-team.jpg',
   },
   {
     id: 'recognition',
     menuTitle: 'Распознавание еды',
     menuDescription: 'Умная касса на базе компьютерного зрения.',
-    defaultImageFile: 'smart-kassa.png',
+    defaultImageFile: 'smart-kassa.jpg',
     defaultQrFile: 'qr-video.png',
   },
   {
     id: 'kiosk',
     menuTitle: 'Терминал самообслуживания',
     menuDescription: 'Интерактивный киоск заказа «как в Макдоналдс».',
-    defaultImageFile: 'self-service-kiosk.png',
+    defaultImageFile: 'self-service-kiosk.jpg',
   },
   {
     id: 'contacts',
@@ -216,7 +216,7 @@ export function createCustomSlideEntry(): CustomPresentationSlide {
     id: createCustomSlideId(),
     menuTitle: 'Новый слайд',
     menuDescription: 'Контентный слайд по стандартному шаблону.',
-    defaultImageFile: 'dev-team.png',
+    defaultImageFile: 'dev-team.jpg',
     content: createBlankSlideContent(),
   };
 }
@@ -229,7 +229,7 @@ export function normalizeCustomSlide(
     id: raw.id,
     menuTitle: asString(raw.menuTitle, 'Новый слайд'),
     menuDescription: asString(raw.menuDescription, 'Контентный слайд по стандартному шаблону.'),
-    defaultImageFile: asString(raw.defaultImageFile, 'dev-team.png'),
+    defaultImageFile: asString(raw.defaultImageFile, 'dev-team.jpg'),
     content: normalizeSlideContent('about', raw.content ?? undefined),
   };
 }
@@ -513,7 +513,7 @@ export function resolveSlideImageSrc(
   if (slide.imageDataUrl?.trim()) return slide.imageDataUrl;
   if (defaultImageFile) return defaultSlideAssetUrl(defaultImageFile);
   const def = PRESENTATION_SLIDE_DEFS.find((item) => item.id === id);
-  return defaultSlideAssetUrl(def?.defaultImageFile ?? 'dev-team.png');
+  return defaultSlideAssetUrl(def?.defaultImageFile ?? 'dev-team.jpg');
 }
 
 export function resolveContactsMapSrc(slide: ContactsSlideContent): string {
