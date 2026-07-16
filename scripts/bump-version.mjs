@@ -18,7 +18,23 @@ function todayIso() {
 }
 
 function escapeString(value) {
-  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\r\n/g, '\\n')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\n')
+    .replace(/\t/g, '\\t');
+}
+
+function sanitizeNotes(value) {
+  return value
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 200);
 }
 
 function formatHistoryEntry(entry) {
@@ -83,7 +99,8 @@ const versionData = JSON.parse(readFileSync(versionJsonPath, 'utf8'));
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
 const lastVersion = versionData.history.at(-1)?.version ?? pkg.version;
 const newVersion = bumpPatch(lastVersion);
-const notes = process.env.DEPLOY_NOTES?.trim().slice(0, 200) || 'Автоматический релиз';
+const notes =
+  sanitizeNotes(process.env.DEPLOY_NOTES ?? '') || 'Автоматический релиз';
 
 versionData.history.push({
   version: newVersion,
