@@ -29,6 +29,11 @@
       "version": "1.0.5",
       "date": "2026-07-16",
       "notes": "Use custom slide photos as default presentation assets. Promote the uploaded images for about, recognition, kiosk, and contacts slides into public assets so new estimates and resets use them without p"
+    },
+    {
+      "version": "1.0.6",
+      "date": "2026-07-16",
+      "notes": "Polish KP slide badges and add local text presets. Improve badge layout and premium outline icons with color options, and let editors save alternate text variants per slide under the live preview. Co-"
     }
   ]
 }
