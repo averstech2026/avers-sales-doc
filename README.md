@@ -81,6 +81,24 @@ service cloud.firestore {
 
 ## Деплой на GitHub Pages
 
+При пуше в `main` сайт собирается в GitHub Actions (`.github/workflows/deploy.yml`). Файл `.env` в репозиторий не попадает — ключи нужно добавить в **Settings → Secrets and variables → Actions** репозитория:
+
+| Secret | Обязательно |
+|--------|-------------|
+| `VITE_FIREBASE_API_KEY` | да |
+| `VITE_FIREBASE_AUTH_DOMAIN` | да |
+| `VITE_FIREBASE_PROJECT_ID` | да |
+| `VITE_FIREBASE_STORAGE_BUCKET` | да |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | да |
+| `VITE_FIREBASE_APP_ID` | да |
+| `VITE_SUPERADMIN_EMAILS` | нет |
+| `VITE_YANDEX_PARSE_URL` | нет |
+| `VITE_DADATA_PARTY_URL` | нет |
+
+Скопируйте значения из локального `.env` (те же строки с префиксом `VITE_`). После добавления секретов сделайте пустой коммит или **Re-run** последнего workflow в Actions.
+
+Локальный деплой вручную:
+
 ```bash
 npm run deploy
 ```
