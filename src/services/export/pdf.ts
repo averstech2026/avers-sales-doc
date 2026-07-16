@@ -1,6 +1,6 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import type { Estimate } from '../../types';
+import type { Estimate, StandardLineItem } from '../../types';
 import { ROLES } from '../../constants/roles';
 import { getCopyrightYear, getVersionLabel } from '../../constants/version';
 import {
@@ -10,10 +10,16 @@ import {
   formatDate,
   formatNumber,
 } from '../../utils/calculator';
+import {
+  calculateLineTotal,
+  calculateStandardTotals,
+  formatStandardLineCost,
+} from '../../utils/standardCalculator';
+import { isStandardEstimate } from '../../utils/estimateFactory';
 import { AVERS_LOGO } from '../../utils/clientLogo';
 import { loadThemeColors } from '../../utils/personalization';
 import { loadPresentationSlidesLibrary } from '../presentationSlides';
-import { buildEmbeddedStandardSlideHtml, buildEmbeddedContactsSlideHtml, embeddedSlideCss } from '../../components/slides/slideTemplate';
+import { buildEmbeddedStandardSlideHtml, buildUnifiedFooterSectionHtml, embeddedSlideCss } from '../../components/slides/slideTemplate';
 import {
   createDefaultSlidesLibrary,
   type PresentationSlidesLibrary,
@@ -94,82 +100,74 @@ export function pdfStyles(): string {
       width: 100%;
       margin-bottom: 16px;
     }
-    .pdf-parties-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 32px;
+    .kp-header-section {
+      width: 100%;
+      margin-top: 20px;
+      margin-bottom: 25px;
     }
-    .pdf-header-column {
-      display: flex;
-      flex-direction: column;
-      width: 45%;
+    .header-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: start;
+    }
+    .header-column-sender,
+    .header-column-recipient {
       min-width: 0;
     }
-    .pdf-header-column.left {
-      align-items: flex-start;
-      text-align: left;
-    }
-    .pdf-header-column.right {
-      align-items: flex-end;
-      text-align: right;
-    }
-    .column-meta-label {
-      font-size: 9px;
-      font-weight: 600;
+    .header-meta-label {
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 700;
       color: #94a3b8;
       text-transform: uppercase;
       letter-spacing: 1px;
-      margin-bottom: 10px;
       display: block;
+      margin-bottom: 12px;
     }
-    .brand-info-block {
-      display: flex;
-      flex-direction: column;
-    }
-    .pdf-header-column.left .brand-info-block {
-      align-items: flex-start;
-    }
-    .pdf-header-column.right .brand-info-block {
-      align-items: flex-end;
-    }
-    .logo-wrapper-pdf {
-      height: 28px;
+    .brand-logo-wrapper,
+    .recipient-logo-wrapper {
+      height: 36px;
       display: flex;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 12px;
     }
-    .pdf-header-column.right .logo-wrapper-pdf {
-      justify-content: flex-end;
-    }
-    .brand-logo-pdf,
-    .client-logo-pdf {
-      max-height: 100%;
+    .brand-logo {
+      height: 28px;
       width: auto;
       max-width: 200px;
       object-fit: contain;
     }
-    .company-name-pdf {
+    .recipient-logo {
+      height: 22px;
+      width: auto;
+      max-width: 200px;
+      object-fit: contain;
+    }
+    .company-title {
+      font-family: inherit;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
       color: #1e293b;
+      margin: 0 0 4px 0;
+      line-height: 1.3;
     }
-    .kp-author-info {
+    .company-subtitle {
+      font-family: inherit;
       font-size: 11px;
-      color: ${c.textMuted};
-      margin-top: 4px;
       font-weight: 500;
+      color: #64748b;
+      line-height: 1.4;
     }
-    .project-meta-pdf {
-      margin-top: 6px;
-      font-size: 12px;
-    }
-    .project-label {
-      color: ${c.textMuted};
-    }
-    .project-highlight {
-      color: #0f172a;
+    .company-subtitle .highlight-text {
+      color: #334155;
       font-weight: 600;
+    }
+    .header-column-recipient {
+      text-align: right;
+    }
+    .header-column-recipient .recipient-logo-wrapper {
+      justify-content: flex-end;
     }
     .pdf-summary-cards {
       display: grid;
@@ -216,6 +214,52 @@ export function pdfStyles(): string {
       height: 2px;
       background: ${c.accent};
       margin-bottom: 0;
+    }
+
+    /* Иерархия заголовков: Спецификация (H2) — как .embedded-slide-title */
+    .specification-main-title {
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      color: #0f172a;
+      margin: 32px 0 4px;
+      line-height: 1.2;
+      padding-bottom: 0;
+    }
+    /* Как .embedded-slide-accent / .pdf-section-accent */
+    .specification-main-accent {
+      width: 60px;
+      height: 2px;
+      background: ${c.accent};
+      margin-bottom: 24px;
+    }
+    .section-sub-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #334155;
+      margin: 24px 0 12px;
+    }
+    .section-sub-title .icon {
+      opacity: 0.75;
+      filter: grayscale(10%);
+      width: 16px;
+      height: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .specification-main-accent + .section-sub-title {
+      margin-top: 0;
     }
     .pdf-table-wrap { overflow-x: auto; }
     .pdf-table {
@@ -292,41 +336,90 @@ export function pdfStyles(): string {
     .pdf-grand-totals__final strong {
       color: ${c.accent};
     }
-    .pdf-signatures {
-      margin-top: 24px;
+
+    /* Standard estimate: structured total summary */
+    .summary-wrapper {
+      margin-top: 40px;
+      margin-bottom: 32px;
       display: flex;
-      justify-content: flex-start;
-      gap: 48px;
-      font-size: 10px;
-      color: ${c.textMuted};
+      flex-direction: column;
+      align-items: flex-end;
+      width: 100%;
       page-break-inside: avoid;
     }
-    .pdf-signatures__col { width: 240px; }
-    .pdf-signatures__heading {
+    .summary-group {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .summary-group.recurring-group {
+      margin-top: 24px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+    }
+    .summary-row.sub {
+      font-size: 10pt;
+      color: #64748b;
+    }
+    .summary-row.sub .summary-value {
       font-weight: 600;
-      color: ${c.text};
-      margin-bottom: 8px;
-      font-size: 10px;
+      color: #1e293b;
+      white-space: nowrap;
     }
-    .pdf-signatures__org {
-      margin-bottom: 2px;
-      color: ${c.text};
-      font-size: 10px;
+    .summary-divider {
+      height: 1px;
+      background-color: #e2e8f0;
+      margin: 8px 0;
+      width: 100%;
     }
-    .pdf-signatures__line {
-      border-bottom: 1px solid ${c.border};
-      width: 160px;
-      height: 20px;
-      margin: 6px 0 4px;
+    .summary-row.main-total {
+      margin-top: 4px;
+      margin-bottom: 4px;
     }
-    .pdf-signatures__name {
-      font-size: 10px;
-      color: ${c.text};
-      font-weight: 600;
+    .summary-label-total {
+      font-size: 9pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.5px;
     }
-    .pdf-signatures__position {
-      font-size: 9px;
-      margin-top: 1px;
+    .summary-value-total {
+      font-size: 16pt;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .text-red {
+      color: #ef4444;
+    }
+    .summary-row.main-total-recurring {
+      background-color: #f8fafc;
+      border-left: 3px solid #2563eb;
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .summary-label-recurring {
+      font-size: 8.5pt;
+      font-weight: 800;
+      color: #1e293b;
+      letter-spacing: 0.5px;
+    }
+    .summary-value-recurring {
+      font-size: 13pt;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .text-blue {
+      color: #2563eb;
     }
     .pdf-footer {
       margin-top: 20px;
@@ -353,6 +446,107 @@ export function pdfStyles(): string {
       font-size: 12.5px;
       line-height: 1.5;
       color: #475569;
+    }
+
+    /* --- Типовая смета: спецификация ПО / Услуги --- */
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 8px;
+      table-layout: fixed;
+    }
+    .spec-table col.col-num { width: 5%; }
+    .spec-table col.col-name { width: 43%; }
+    .spec-table col.col-type { width: 14%; }
+    .spec-table col.col-price { width: 13%; }
+    .spec-table col.col-qty { width: 10%; }
+    .spec-table col.col-total { width: 15%; }
+    .spec-table th {
+      background-color: #f8fafc;
+      color: #475569;
+      font-size: 7.5pt !important;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      padding: 8px 6px !important;
+      border-bottom: 1.5px solid #e2e8f0;
+      text-align: left;
+    }
+    .spec-table td {
+      padding: 12px 14px;
+      font-size: 9.5pt;
+      color: #334155;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: top;
+    }
+    .spec-table td:last-child,
+    .spec-table th:last-child {
+      text-align: right !important;
+      padding-right: 12px !important;
+    }
+    .spec-table tbody tr { page-break-inside: avoid; }
+    .col-num { text-align: center; color: #94a3b8; font-weight: 700; }
+    .col-name { }
+    .col-type { }
+    .col-price { text-align: right; white-space: nowrap; }
+    .col-qty { text-align: center; }
+    .col-total { text-align: right; font-weight: 700; color: #0f172a; white-space: nowrap; }
+    .spec-table th.col-num,
+    .spec-table th.col-qty { text-align: center; }
+    .spec-table th.col-price,
+    .spec-table th.col-total { text-align: right; }
+    .item-name {
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 3px;
+      line-height: 1.35;
+    }
+    .item-note {
+      font-size: 8pt;
+      color: #ef4444;
+      font-style: italic;
+      margin: 2px 0;
+      padding-left: 6px;
+      border-left: 2px solid #ef4444;
+      line-height: 1.35;
+    }
+    .item-desc {
+      font-size: 8pt;
+      color: #64748b;
+      line-height: 1.35;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .badge-buy { background-color: #f0fdf4; color: #15803d; }
+    .badge-rent { background-color: #eff6ff; color: #1d4ed8; }
+    .badge-service { background-color: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+    .subtotal-row { background-color: #f8fafc; }
+    .subtotal-row td {
+      font-weight: 700;
+      border-top: 1.5px solid #e2e8f0;
+      border-bottom: none;
+      padding: 12px 14px;
+      vertical-align: middle;
+    }
+    .pdf-subtotal-labels {
+      text-align: right;
+      line-height: 1.5;
+      white-space: nowrap;
+    }
+    .pdf-subtotal-values {
+      text-align: right;
+      line-height: 1.5;
+      white-space: nowrap;
+      padding-right: 0;
     }
 
     /* Embedded presentation slides inside A4 document flow */
@@ -407,9 +601,9 @@ function buildAuthorInfoHtml(
   const name = signature?.fullName?.trim() || estimate.createdByName?.trim() || '';
   const position = signature?.position?.trim() || '';
   if (!name && !position) return '';
-  const label =
-    name && position ? `${name}, ${position}` : name || position;
-  return `<div class="kp-author-info">Составил: ${escapeHtml(label)}</div>`;
+  const escapedName = name ? `<span class="highlight-text">${escapeHtml(name)}</span>` : '';
+  const suffix = position ? `${name ? ', ' : ''}${escapeHtml(position)}` : '';
+  return `<div class="company-subtitle">Составил: ${escapedName}${suffix}</div>`;
 }
 
 function buildPageHeaderHtml(
@@ -423,7 +617,7 @@ function buildPageHeaderHtml(
   const authorHtml = buildAuthorInfoHtml(estimate, signature);
 
   const clientLogoImg = clientLogo
-    ? pdfLogoImg(clientLogo, clientName, 'client-logo-pdf')
+    ? pdfLogoImg(clientLogo, clientName, 'recipient-logo')
     : '';
 
   return `
@@ -433,29 +627,268 @@ function buildPageHeaderHtml(
         <span class="pdf-doc-date">от ${formatDate(estimate.updatedAt)}</span>
       </div>
       <div class="pdf-header-divider"></div>
-      <div class="pdf-parties-row">
-        <div class="pdf-header-column left">
-          <span class="column-meta-label">ОТПРАВИТЕЛЬ:</span>
-          <div class="brand-info-block">
-            <div class="logo-wrapper-pdf">
-              ${pdfLogoImg(aversLogo, 'Avers Technology', 'brand-logo-pdf')}
+      <div class="kp-header-section">
+        <div class="header-columns">
+          <div class="header-column-sender">
+            <span class="header-meta-label">Отправитель</span>
+            <div class="brand-logo-wrapper">
+              ${pdfLogoImg(aversLogo, 'Avers Technology', 'brand-logo')}
             </div>
-            <div class="company-name-pdf">ООО «Аверс Технолоджи»</div>
+            <div class="company-title">ООО «Аверс Технолоджи»</div>
             ${authorHtml}
           </div>
-        </div>
-        <div class="pdf-header-column right">
-          <span class="column-meta-label">ПОДГОТОВЛЕНО ДЛЯ:</span>
-          <div class="brand-info-block">
-            <div class="logo-wrapper-pdf">${clientLogoImg}</div>
-            <div class="company-name-pdf">${escapeHtml(clientName)}</div>
-          </div>
-          <div class="project-meta-pdf">
-            <span class="project-label">Проект:</span>
-            <span class="project-highlight">${escapeHtml(estimate.projectName)}</span>
+          <div class="header-column-recipient">
+            <span class="header-meta-label">Подготовлено для</span>
+            <div class="recipient-logo-wrapper">${clientLogoImg}</div>
+            <div class="company-title">${escapeHtml(clientName)}</div>
+            <div class="company-subtitle">Проект: <span class="highlight-text">${escapeHtml(estimate.projectName)}</span></div>
           </div>
         </div>
       </div>
+    </div>
+  `;
+}
+
+function buildStandardSummaryCardsHtml(
+  totals: ReturnType<typeof calculateStandardTotals>
+): string {
+  const vatLabel = `${Math.round(totals.vatRate * 100)}%`;
+  const cards = [
+    { label: 'Единоразово (с НДС)', value: formatCurrency(totals.oneTimeWithVat), accent: true },
+    { label: 'Аренда / месяц', value: `${formatCurrency(totals.recurringMonthly)} / мес.`, accent: false },
+    { label: `НДС (${vatLabel})`, value: formatCurrency(totals.vat), accent: false },
+    { label: 'Всего позиций', value: String(totals.itemCount), accent: false },
+  ];
+
+  return `
+    <div class="pdf-summary-cards">
+      ${cards
+        .map(
+          (card) => `
+        <div class="pdf-summary-card">
+          ${cornerFrameHtml(card.accent)}
+          <div class="pdf-summary-card__label">${card.label}</div>
+          <div class="pdf-summary-card__value${card.accent ? ' pdf-summary-card__value--accent' : ''}">${card.value}</div>
+        </div>`
+        )
+        .join('')}
+    </div>
+  `;
+}
+
+function paymentBadgeHtml(item: StandardLineItem): string {
+  if (item.paymentScheme === 'rent') {
+    return `<span class="badge badge-rent">Аренда</span>`;
+  }
+  if (item.paymentScheme === 'buyout') {
+    return `<span class="badge badge-buy">Выкуп</span>`;
+  }
+  return `<span class="badge badge-service">Фикс. оплата</span>`;
+}
+
+function pdfSubtotalHtml(oneTime: number, recurring = 0): string {
+  let labels = '';
+  let values = '';
+
+  if (oneTime > 0 && recurring > 0) {
+    labels = `
+      <div style="font-size: 8pt; color: #64748b; font-weight: bold;">ИТОГО К ОПЛАТЕ (ЕДИНОРАЗОВО):</div>
+      <div style="font-size: 8pt; color: #2563eb; font-weight: bold; margin-top: 3px;">ИТОГО АРЕНДА (ЕЖЕМЕСЯЧНО):</div>
+    `;
+    values = `
+      <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a;">${formatCurrency(oneTime)}</div>
+      <div style="font-size: 9pt; font-weight: 800; color: #2563eb; margin-top: 3px;">${formatCurrency(recurring)} / мес.</div>
+    `;
+  } else if (oneTime > 0) {
+    labels = `<div style="font-size: 8pt; color: #64748b; font-weight: bold;">ИТОГО ПО РАЗДЕЛУ:</div>`;
+    values = `<div style="font-size: 9.5pt; font-weight: 800; color: #0f172a;">${formatCurrency(oneTime)}</div>`;
+  } else if (recurring > 0) {
+    labels = `<div style="font-size: 8pt; color: #2563eb; font-weight: bold;">ИТОГО АРЕНДА (ЕЖЕМЕСЯЧНО):</div>`;
+    values = `<div style="font-size: 9.5pt; font-weight: 800; color: #2563eb;">${formatCurrency(recurring)} / мес.</div>`;
+  } else {
+    labels = `<div style="font-size: 8pt; color: #64748b; font-weight: bold;">ИТОГО ПО РАЗДЕЛУ:</div>`;
+    values = `<div style="font-size: 9.5pt; font-weight: 800; color: #0f172a;">${formatCurrency(0)}</div>`;
+  }
+
+  return `
+    <tr class="subtotal-row">
+      <td colspan="5" style="text-align: right; padding-right: 12px; vertical-align: middle;">
+        <div class="pdf-subtotal-labels">${labels}</div>
+      </td>
+      <td style="text-align: right; vertical-align: middle; padding-right: 12px;">
+        <div class="pdf-subtotal-values">${values}</div>
+      </td>
+    </tr>
+  `;
+}
+
+function buildStandardSpecRowsHtml(items: StandardLineItem[]): string {
+  return items
+    .map((item, index) => {
+      const note = item.note?.trim()
+        ? `<div class="item-note">* Примечание: ${escapeHtml(item.note.trim())}</div>`
+        : '';
+      const desc = item.description.trim()
+        ? `<div class="item-desc">${escapeHtml(item.description)}</div>`
+        : '';
+      return `
+        <tr>
+          <td class="col-num">${index + 1}</td>
+          <td class="col-name">
+            <div class="item-name">${escapeHtml(item.name)}</div>
+            ${note}
+            ${desc}
+          </td>
+          <td class="col-type">${paymentBadgeHtml(item)}</td>
+          <td class="col-price">${formatCurrency(item.unitPrice)}</td>
+          <td class="col-qty">${item.quantity}</td>
+          <td class="col-total">${formatStandardLineCost(item)}</td>
+        </tr>`;
+    })
+    .join('');
+}
+
+function buildStandardSpecTableHtml(
+  title: string,
+  icon: string,
+  items: StandardLineItem[],
+  oneTime: number,
+  recurring = 0
+): string {
+  const body =
+    items.length === 0
+      ? `<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:16px;">Нет позиций</td></tr>`
+      : buildStandardSpecRowsHtml(items);
+
+  return `
+    <h3 class="section-sub-title"><span class="icon">${icon}</span> ${title}</h3>
+    <table class="spec-table">
+      <colgroup>
+        <col class="col-num" />
+        <col class="col-name" />
+        <col class="col-type" />
+        <col class="col-price" />
+        <col class="col-qty" />
+        <col class="col-total" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="col-num">№</th>
+          <th class="col-name">Наименование</th>
+          <th class="col-type">Тип оплаты</th>
+          <th class="col-price">Цена за ед.</th>
+          <th class="col-qty">Кол-во</th>
+          <th class="col-total">Стоимость</th>
+        </tr>
+      </thead>
+      <tbody>${body}</tbody>
+      <tfoot>
+        ${pdfSubtotalHtml(oneTime, recurring)}
+      </tfoot>
+    </table>
+  `;
+}
+
+function buildStandardTableHtml(estimate: Estimate): string {
+  const items = estimate.standardItems ?? [];
+  const software = items.filter((i) => i.kind === 'software');
+  const hardware = items.filter((i) => i.kind === 'hardware');
+  const services = items.filter((i) => i.kind === 'service');
+
+  let softwareOneTime = 0;
+  let softwareRent = 0;
+  for (const item of software) {
+    const total = calculateLineTotal(item);
+    if (item.paymentScheme === 'rent') softwareRent += total;
+    else softwareOneTime += total;
+  }
+  const hardwareTotal = hardware.reduce((sum, item) => sum + calculateLineTotal(item), 0);
+  const servicesTotal = services.reduce((sum, item) => sum + calculateLineTotal(item), 0);
+
+  return `
+    <h2 class="specification-main-title">Спецификация</h2>
+    <div class="specification-main-accent"></div>
+    ${buildStandardSpecTableHtml(
+      'Программное обеспечение',
+      '💿',
+      software,
+      softwareOneTime,
+      softwareRent
+    )}
+    ${buildStandardSpecTableHtml(
+      'Оборудование и комплектующие',
+      '🔌',
+      hardware,
+      hardwareTotal
+    )}
+    ${buildStandardSpecTableHtml(
+      'Услуги и работы',
+      '🔧',
+      services,
+      servicesTotal
+    )}
+  `;
+}
+
+function buildStandardGrandTotalsHtml(totals: ReturnType<typeof calculateStandardTotals>): string {
+  const vatLabel = `${Math.round(totals.vatRate * 100)}%`;
+  const recurringGroup =
+    totals.recurringMonthly > 0
+      ? `
+      <div class="summary-group recurring-group">
+        <div class="summary-row main-total-recurring">
+          <span class="summary-label-recurring">ИТОГО АРЕНДА (ЕЖЕМЕСЯЧНО):</span>
+          <span class="summary-value-recurring text-blue">${formatCurrency(totals.recurringMonthly)} / мес.</span>
+        </div>
+      </div>`
+      : '';
+
+  return `
+    <div class="summary-wrapper">
+      <div class="summary-group one-time-group">
+        <div class="summary-row sub">
+          <span class="summary-label">Единоразово без НДС:</span>
+          <span class="summary-value">${formatCurrency(totals.oneTimeSubtotal)}</span>
+        </div>
+        <div class="summary-row sub">
+          <span class="summary-label">НДС ${vatLabel}:</span>
+          <span class="summary-value">${formatCurrency(totals.vat)}</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-row main-total">
+          <span class="summary-label-total">ИТОГО К ОПЛАТЕ (ЕДИНОРАЗОВО):</span>
+          <span class="summary-value-total text-red">${formatCurrency(totals.oneTimeWithVat)}</span>
+        </div>
+      </div>
+      ${recurringGroup}
+    </div>
+  `;
+}
+
+function buildStandardDocumentPage(estimate: Estimate, options: PdfExportOptions): string {
+  const totals = calculateStandardTotals(estimate.standardItems ?? [], estimate.vatRate ?? 0.05);
+
+  const clientLogoSrc = options.clientLogoSrc ?? null;
+  const descriptionText = estimate.description?.trim() ?? '';
+  const descriptionBlock = descriptionText
+    ? `<div class="pdf-description-block">
+        <h2 class="pdf-description-title">Описание проекта</h2>
+        <p class="pdf-description">${escapeHtml(descriptionText)}</p>
+      </div>`
+    : '';
+
+  const embeddedMarketing = buildEmbeddedMarketingSlidesHtml(estimate, options);
+
+  return `
+    <div class="pdf-page pdf-page--document">
+      ${buildPageHeaderHtml(estimate, clientLogoSrc, options.signature)}
+      ${embeddedMarketing}
+      ${descriptionBlock}
+      ${buildStandardSummaryCardsHtml(totals)}
+      ${buildStandardTableHtml(estimate)}
+      ${buildStandardGrandTotalsHtml(totals)}
+      ${buildUnifiedFooterBlockHtml(estimate, options)}
+      ${buildFooterHtml()}
     </div>
   `;
 }
@@ -484,29 +917,22 @@ function buildSummaryCardsHtml(totals: ReturnType<typeof calculateEstimateTotals
   `;
 }
 
-function buildSignatureBlockHtml(
+function buildUnifiedFooterBlockHtml(
   estimate: Estimate,
-  signature?: PdfExportOptions['signature']
+  options: PdfExportOptions
 ): string {
-  const signerName = signature?.fullName?.trim() ?? '';
-  const signerPosition = signature?.position?.trim() ?? '';
+  const library = resolveSlidesLibrary(options);
+  const contacts =
+    estimate.presentationSlides?.contacts === true ? library.contacts : null;
 
-  return `
-    <div class="pdf-signatures">
-      <div class="pdf-signatures__col">
-        <div class="pdf-signatures__heading">Исполнитель</div>
-        <div class="pdf-signatures__org">ООО «Аверс Технолоджи»</div>
-        <div class="pdf-signatures__line"></div>
-        ${signerName ? `<div class="pdf-signatures__name">${escapeHtml(signerName)}</div>` : ''}
-        ${signerPosition ? `<div class="pdf-signatures__position">${escapeHtml(signerPosition)}</div>` : ''}
-      </div>
-      <div class="pdf-signatures__col">
-        <div class="pdf-signatures__heading">Заказчик</div>
-        <div class="pdf-signatures__org">${escapeHtml(estimate.clientName || '—')}</div>
-        <div class="pdf-signatures__line"></div>
-      </div>
-    </div>
-  `;
+  return buildUnifiedFooterSectionHtml(
+    {
+      signerName: options.signature?.fullName?.trim() ?? '',
+      signerPosition: options.signature?.position?.trim() ?? '',
+      clientName: estimate.clientName ?? '',
+    },
+    contacts
+  );
 }
 
 function escapeHtml(value: string): string {
@@ -598,10 +1024,22 @@ function buildTableHtml(estimate: Estimate): string {
 
 function buildGrandTotalsHtml(totals: ReturnType<typeof calculateEstimateTotals>): string {
   return `
-    <div class="pdf-grand-totals">
-      <div class="pdf-grand-totals__row">Итого без НДС: <strong>${formatCurrency(totals.subtotal)}</strong></div>
-      <div class="pdf-grand-totals__row">НДС 5%: <strong>${formatCurrency(totals.vat)}</strong></div>
-      <div class="pdf-grand-totals__final">Итого с НДС: <strong>${formatCurrency(totals.totalWithVat)}</strong></div>
+    <div class="summary-wrapper">
+      <div class="summary-group one-time-group">
+        <div class="summary-row sub">
+          <span class="summary-label">Итого без НДС:</span>
+          <span class="summary-value">${formatCurrency(totals.subtotal)}</span>
+        </div>
+        <div class="summary-row sub">
+          <span class="summary-label">НДС 5%:</span>
+          <span class="summary-value">${formatCurrency(totals.vat)}</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-row main-total">
+          <span class="summary-label-total">ИТОГО К ОПЛАТЕ:</span>
+          <span class="summary-value-total text-red">${formatCurrency(totals.totalWithVat)}</span>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -629,7 +1067,6 @@ function buildDocumentPage(
     : '';
 
   const embeddedMarketing = buildEmbeddedMarketingSlidesHtml(estimate, options);
-  const embeddedContacts = buildEmbeddedContactsBlockHtml(estimate, options);
 
   return `
     <div class="pdf-page pdf-page--document">
@@ -639,8 +1076,7 @@ function buildDocumentPage(
       ${buildSummaryCardsHtml(totals)}
       ${buildTableHtml(estimate)}
       ${buildGrandTotalsHtml(totals)}
-      ${buildSignatureBlockHtml(estimate, options.signature)}
-      ${embeddedContacts}
+      ${buildUnifiedFooterBlockHtml(estimate, options)}
       ${buildFooterHtml()}
     </div>
   `;
@@ -665,17 +1101,25 @@ export function buildEmbeddedMarketingSlidesHtml(
     parts.push(buildEmbeddedStandardSlideHtml('recognition', library.recognition));
   }
   if (selected.kiosk) parts.push(buildEmbeddedStandardSlideHtml('kiosk', library.kiosk));
+
+  const customById = new Map((library.customSlides ?? []).map((slide) => [slide.id, slide]));
+  for (const id of selected.customIds ?? []) {
+    const slide = customById.get(id);
+    if (!slide) continue;
+    parts.push(
+      buildEmbeddedStandardSlideHtml(slide.id, slide.content, slide.defaultImageFile)
+    );
+  }
+
   return parts.join('');
 }
 
-/** Contacts slide as a compact closing block before signatures. */
+/** @deprecated Slides are embedded in the unified footer section. */
 export function buildEmbeddedContactsBlockHtml(
   estimate: Estimate,
   options: PdfExportOptions = {}
 ): string {
-  if (estimate.presentationSlides?.contacts !== true) return '';
-  const library = resolveSlidesLibrary(options);
-  return buildEmbeddedContactsSlideHtml(library.contacts);
+  return buildUnifiedFooterBlockHtml(estimate, options);
 }
 
 /** @deprecated Landscape slide pages removed — slides are embedded in the A4 document. */
@@ -687,6 +1131,9 @@ export function buildPresentationSlidesHtml(
 }
 
 export function buildPdfHtml(estimate: Estimate, options: PdfExportOptions = {}): string {
+  if (isStandardEstimate(estimate)) {
+    return buildStandardDocumentPage(estimate, options);
+  }
   const totals = calculateEstimateTotals(estimate);
   return buildDocumentPage(estimate, totals, options);
 }

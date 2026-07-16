@@ -8,6 +8,8 @@ import {
   calculateEstimateTotals,
   formatDate,
 } from '../../utils/calculator';
+import { exportStandardToExcel } from './standardExcel';
+import { isStandardEstimate } from '../../utils/estimateFactory';
 
 const FONT = 'Segoe UI';
 const CURRENCY_FMT = '#,##0" ₽"';
@@ -164,6 +166,10 @@ function addGrandTotalRow(
 }
 
 export async function exportToExcel(estimate: Estimate): Promise<void> {
+  if (isStandardEstimate(estimate)) {
+    return exportStandardToExcel(estimate);
+  }
+
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Аверс Технолоджи';
   workbook.company = getVersionLabel();

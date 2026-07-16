@@ -1,17 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { EstimateEditor } from '../components/estimate/EstimateEditor';
+import { StandardEstimateEditor } from '../components/estimate/StandardEstimateEditor';
 import { SummaryCards } from '../components/estimate/SummaryCards';
+import { StandardSummaryCards } from '../components/estimate/StandardSummaryCards';
 import { RatesSettings } from '../components/estimate/RatesSettings';
 import { AiParsePanel } from '../components/ai/AiParsePanel';
+import { EditorBackLink } from '../components/ui/EditorBackLink';
 import { Modal } from '../components/ui/Modal';
 import {
   createNewEstimate,
+  createNewStandardEstimate,
   getCancelConfirmMessage,
+  isStandardEstimate,
   serializeEstimateForCompare,
   shouldDeleteOnCancel,
 } from '../utils/estimateFactory';
 import { calculateEstimateTotals } from '../utils/calculator';
+import { calculateStandardTotals } from '../utils/standardCalculator';
 import { resolveEstimateClientLogo } from '../utils/clientLogo';
 import { deleteEstimate, getShareUrl, loadEstimate, saveEstimate } from '../services/firestore';
 import { exportToExcel } from '../services/export/excel';
@@ -24,10 +30,15 @@ export function EstimatePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const estimateId = searchParams.get('id');
+  const estimateTypeParam = searchParams.get('type');
 
-  const [estimate, setEstimate] = useState<Estimate>(() => createNewEstimate());
+  const [estimate, setEstimate] = useState<Estimate>(() =>
+    estimateTypeParam === 'standard' ? createNewStandardEstimate() : createNewEstimate()
+  );
   const [savedSnapshot, setSavedSnapshot] = useState(() =>
-    serializeEstimateForCompare(createNewEstimate())
+    serializeEstimateForCompare(
+      estimateTypeParam === 'standard' ? createNewStandardEstimate() : createNewEstimate()
+    )
   );
   const [loading, setLoading] = useState(!!estimateId);
   const [saving, setSaving] = useState(false);
@@ -41,7 +52,12 @@ export function EstimatePage() {
   const [exporting, setExporting] = useState<'excel' | null>(null);
 
   const { user, firebaseReady } = useAuth();
+  const isStandard = isStandardEstimate(estimate);
   const totals = useMemo(() => calculateEstimateTotals(estimate), [estimate]);
+  const standardTotals = useMemo(
+    () => calculateStandardTotals(estimate.standardItems ?? [], estimate.vatRate ?? 0.05),
+    [estimate.standardItems, estimate.vatRate]
+  );
 
   const isDirty = useMemo(
     () => serializeEstimateForCompare(estimate) !== savedSnapshot,
@@ -55,10 +71,11 @@ export function EstimatePage() {
 
   useEffect(() => {
     if (estimateId) return;
-    const initial = createNewEstimate({ isDraft: true });
+    const initial =
+      estimateTypeParam === 'standard' ? createNewStandardEstimate({ isDraft: true }) : createNewEstimate({ isDraft: true });
     setEstimate(initial);
     setSavedSnapshot(serializeEstimateForCompare(initial));
-  }, [estimateId]);
+  }, [estimateId, estimateTypeParam]);
 
   useEffect(() => {
     if (!estimateId) return;
@@ -96,7 +113,14 @@ export function EstimatePage() {
 
     setSaving(true);
     try {
-      const finalized = { ...estimate, isDraft: false };
+      const finalized = isStandard
+        ? {
+            ...estimate,
+            isDraft: false,
+            oneTimeTotal: standardTotals.oneTimeWithVat,
+            recurringTotal: standardTotals.recurringMonthly,
+          }
+        : { ...estimate, isDraft: false };
       const id = await saveEstimate(finalized, {
         createdByUid: user.uid,
         createdByName: resolveEstimateCreatorName(user),
@@ -209,27 +233,37 @@ export function EstimatePage() {
   return (
     <div className="page estimate-page">
       <header className="page-header page-header--sticky">
-        <div>
+        <div className="editor-header-left">
+          <EditorBackLink
+            label="К списку смет"
+            onClick={handleCancelClick}
+            disabled={cancelling || saving}
+          />
           <h1>{estimate.projectName}</h1>
           <p className="page-header__sub">
-            {estimate.clientName || 'Укажите заказчика'} · Редактор сметы
+            {estimate.clientName || 'Укажите заказчика'} ·{' '}
+            {isStandard ? 'Типовое внедрение (ПО и Услуги)' : 'Редактор сметы'}
           </p>
         </div>
         <div className="page-header__actions">
-          <button type="button" className="btn btn--ghost" onClick={() => setShowRates(true)}>
-            Ставки
-          </button>
-          <button
-            type="button"
-            className="btn btn-ai-analyze"
-            id="btn-ai-analyze"
-            onClick={() => setShowAi(true)}
-          >
-            <span className="ai-sparkle-icon" aria-hidden="true">
-              ✨
-            </span>
-            AI-разбор ТЗ
-          </button>
+          {!isStandard && (
+            <>
+              <button type="button" className="btn btn--ghost" onClick={() => setShowRates(true)}>
+                Ставки
+              </button>
+              <button
+                type="button"
+                className="btn btn-ai-analyze"
+                id="btn-ai-analyze"
+                onClick={() => setShowAi(true)}
+              >
+                <span className="ai-sparkle-icon" aria-hidden="true">
+                  ✨
+                </span>
+                AI-разбор ТЗ
+              </button>
+            </>
+          )}
           {estimate.id && (
             <button type="button" className="btn btn--ghost" onClick={handleCopyLink}>
               Копировать ссылку
@@ -253,15 +287,6 @@ export function EstimatePage() {
           </button>
           <button
             type="button"
-            className="btn-cancel-estimate"
-            id="btn-cancel-estimate"
-            onClick={handleCancelClick}
-            disabled={cancelling || saving}
-          >
-            {cancelling ? 'Удаление…' : 'Отменить и выйти'}
-          </button>
-          <button
-            type="button"
             className="btn btn-save"
             id="btn-save-cloud"
             onClick={handleSave}
@@ -272,26 +297,68 @@ export function EstimatePage() {
         </div>
       </header>
 
-      <SummaryCards totals={totals} />
+      {isStandard ? <StandardSummaryCards totals={standardTotals} /> : <SummaryCards totals={totals} />}
       <div className="estimate-page__editor">
-        <EstimateEditor estimate={estimate} onChange={setEstimate} />
+        {isStandard ? (
+          <StandardEstimateEditor estimate={estimate} onChange={setEstimate} />
+        ) : (
+          <EstimateEditor estimate={estimate} onChange={setEstimate} />
+        )}
 
         <div className="estimate-page__summary-footer">
-          <div className="estimate-page__grand-total">
-            <div className="summary-header">Итого по проекту</div>
-            <div className="grand-total-row">
-              <span>Итого без НДС</span>
-              <strong>{totals.subtotal.toLocaleString('ru-RU')} ₽</strong>
+          {isStandard ? (
+            <div className="summary-wrapper">
+              <div className="summary-group one-time-group">
+                <div className="summary-row sub">
+                  <span className="summary-label">Единоразово без НДС:</span>
+                  <span className="summary-value">
+                    {standardTotals.oneTimeSubtotal.toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
+                <div className="summary-row sub">
+                  <span className="summary-label">
+                    НДС {Math.round(standardTotals.vatRate * 100)}%:
+                  </span>
+                  <span className="summary-value">
+                    {standardTotals.vat.toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
+                <div className="summary-divider" />
+                <div className="summary-row main-total">
+                  <span className="summary-label-total">ИТОГО К ОПЛАТЕ (ЕДИНОРАЗОВО):</span>
+                  <span className="summary-value-total text-red">
+                    {standardTotals.oneTimeWithVat.toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
+              </div>
+              {standardTotals.recurringMonthly > 0 && (
+                <div className="summary-group recurring-group">
+                  <div className="summary-row main-total-recurring">
+                    <span className="summary-label-recurring">ИТОГО АРЕНДА (ЕЖЕМЕСЯЧНО):</span>
+                    <span className="summary-value-recurring text-blue">
+                      {standardTotals.recurringMonthly.toLocaleString('ru-RU')} ₽ / мес.
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="grand-total-row">
-              <span>НДС 5%</span>
-              <strong>{totals.vat.toLocaleString('ru-RU')} ₽</strong>
+          ) : (
+            <div className="estimate-page__grand-total">
+              <div className="summary-header">Итого по проекту</div>
+              <div className="grand-total-row">
+                <span>Итого без НДС</span>
+                <strong>{totals.subtotal.toLocaleString('ru-RU')} ₽</strong>
+              </div>
+              <div className="grand-total-row">
+                <span>НДС 5%</span>
+                <strong>{totals.vat.toLocaleString('ru-RU')} ₽</strong>
+              </div>
+              <div className="grand-total-row grand-total-row--final">
+                <span>Итого с учётом НДС 5%</span>
+                <strong>{totals.totalWithVat.toLocaleString('ru-RU')} ₽</strong>
+              </div>
             </div>
-            <div className="grand-total-row grand-total-row--final">
-              <span>Итого с учётом НДС 5%</span>
-              <strong>{totals.totalWithVat.toLocaleString('ru-RU')} ₽</strong>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 

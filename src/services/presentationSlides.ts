@@ -3,11 +3,14 @@ import { getDb, isFirebaseConfigured } from '../firebase';
 import { COLLECTIONS } from '../constants/roles';
 import {
   PRESENTATION_SLIDES_SETTINGS_DOC,
+  createCustomSlideEntry,
   createDefaultSlidesLibrary,
   isContactsSlideId,
+  isCustomSlideId,
   normalizeSlidesLibrary,
   type AnySlideContent,
   type ContactsSlideContent,
+  type CustomPresentationSlide,
   type PresentationSlideContent,
   type PresentationSlideId,
   type PresentationSlidesLibrary,
@@ -75,11 +78,46 @@ function slidesPayload(library: PresentationSlidesLibrary) {
     recognition: library.recognition,
     kiosk: library.kiosk,
     contacts: library.contacts,
+    customSlides: library.customSlides ?? [],
   };
 }
 
+export async function addCustomPresentationSlide(
+  meta?: { uid?: string; name?: string }
+): Promise<{ library: PresentationSlidesLibrary; slide: CustomPresentationSlide }> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase не настроен');
+  }
+
+  const current = await loadPresentationSlidesLibrary();
+  const slide = createCustomSlideEntry();
+  const now = new Date().toISOString();
+  const next: PresentationSlidesLibrary = {
+    ...current,
+    customSlides: [...(current.customSlides ?? []), slide],
+    updatedAt: now,
+    updatedByUid: meta?.uid,
+    updatedByName: meta?.name,
+  };
+
+  const db = getDb();
+  await setDoc(
+    doc(db, COLLECTIONS.settings, PRESENTATION_SLIDES_SETTINGS_DOC),
+    {
+      slides: slidesPayload(next),
+      updatedAt: now,
+      updatedByUid: meta?.uid ?? null,
+      updatedByName: meta?.name ?? null,
+    },
+    { merge: true }
+  );
+
+  cachedLibrary = next;
+  return { library: next, slide };
+}
+
 export async function savePresentationSlide(
-  id: PresentationSlideId,
+  id: PresentationSlideId | string,
   content: AnySlideContent,
   meta?: { uid?: string; name?: string }
 ): Promise<PresentationSlidesLibrary> {
@@ -89,15 +127,46 @@ export async function savePresentationSlide(
 
   const current = await loadPresentationSlidesLibrary();
   const now = new Date().toISOString();
-  const next: PresentationSlidesLibrary = {
-    ...current,
-    ...(isContactsSlideId(id)
-      ? { contacts: content as ContactsSlideContent }
-      : { [id]: content as PresentationSlideContent }),
-    updatedAt: now,
-    updatedByUid: meta?.uid,
-    updatedByName: meta?.name,
-  };
+  let next: PresentationSlidesLibrary;
+
+  if (isCustomSlideId(id)) {
+    const slideContent = content as PresentationSlideContent;
+    const customSlides = (current.customSlides ?? []).map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            menuTitle: slideContent.title.trim() || item.menuTitle,
+            content: slideContent,
+          }
+        : item
+    );
+    if (!customSlides.some((item) => item.id === id)) {
+      throw new Error('Слайд не найден');
+    }
+    next = {
+      ...current,
+      customSlides,
+      updatedAt: now,
+      updatedByUid: meta?.uid,
+      updatedByName: meta?.name,
+    };
+  } else if (isContactsSlideId(id)) {
+    next = {
+      ...current,
+      contacts: content as ContactsSlideContent,
+      updatedAt: now,
+      updatedByUid: meta?.uid,
+      updatedByName: meta?.name,
+    };
+  } else {
+    next = {
+      ...current,
+      [id]: content as PresentationSlideContent,
+      updatedAt: now,
+      updatedByUid: meta?.uid,
+      updatedByName: meta?.name,
+    };
+  }
 
   const db = getDb();
   await setDoc(

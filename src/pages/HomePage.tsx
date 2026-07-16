@@ -4,6 +4,11 @@ import { CornerFrame } from '../components/ui/CornerFrame';
 import { Modal } from '../components/ui/Modal';
 import { EstimateListCard } from '../components/home/EstimateListCard';
 import {
+  DEFAULT_ESTIMATES_FILTERS,
+  EstimatesFilterPanel,
+  type EstimatesFilterState,
+} from '../components/home/EstimatesFilterPanel';
+import {
   CloudConnectionSettings,
   type CloudConnectionStatus,
 } from '../components/settings/CloudConnectionSettings';
@@ -21,75 +26,71 @@ type EstimatesTab = 'active' | 'archive';
 
 const LEAVE_ANIMATION_MS = 280;
 
-function CloudStatusIcon({ status }: { status: CloudConnectionStatus }) {
-  if (status === 'connected') {
-    return (
-      <span className="cloud-status-card__icon cloud-status-card__icon--connected" aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M7 18a4.5 4.5 0 0 1 0-9 5.5 5.5 0 0 1 10.8 1.3A4 4 0 1 1 17 18H7z"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinejoin="round"
-          />
-          <path
-            d="m9 13 2 2 4-4"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <span className="cloud-status-card__icon cloud-status-card__icon--warning" aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M7 18a4.5 4.5 0 0 1 0-9 5.5 5.5 0 0 1 10.8 1.3A4 4 0 1 1 17 18H7z"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinejoin="round"
-          />
-          <path d="M12 9v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <circle cx="12" cy="16" r="1" fill="currentColor" />
-        </svg>
-      </span>
-    );
-  }
-
-  return (
-    <span className="cloud-status-card__icon cloud-status-card__icon--local" aria-hidden="true">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M7 18a4.5 4.5 0 0 1 0-9 5.5 5.5 0 0 1 10.8 1.3A4 4 0 1 1 17 18H7z"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </span>
-  );
-}
-
-function getCloudStatusMessage(status: CloudConnectionStatus): string {
+function getCloudStatusBadgeLabel(status: CloudConnectionStatus): string {
   switch (status) {
     case 'connected':
-      return 'База данных Firestore подключена. Все сметы синхронизируются в реальном времени.';
+      return 'Облако синхронизировано';
     case 'error':
-      return 'Не удалось подключиться к Firestore. Нажмите для проверки настроек.';
+      return 'Ошибка облака';
     case 'checking':
-      return 'Проверка подключения к облаку…';
+      return 'Проверка облака…';
     default:
-      return 'Локальный режим. Нажмите для настройки подключения к облаку.';
+      return 'Локальный режим';
   }
 }
 
 function isArchivedEstimate(estimate: EstimateListItem): boolean {
   return estimate.isArchived === true;
+}
+
+function hasActiveFilters(filters: EstimatesFilterState): boolean {
+  return (
+    filters.query.trim() !== '' ||
+    filters.type !== 'all' ||
+    filters.priceMin !== '' ||
+    filters.priceMax !== '' ||
+    filters.date !== ''
+  );
+}
+
+function filterEstimates(
+  items: EstimateListItem[],
+  filters: EstimatesFilterState
+): EstimateListItem[] {
+  const query = filters.query.toLowerCase().trim();
+  const priceMin = filters.priceMin !== '' ? parseFloat(filters.priceMin) : null;
+  const priceMax = filters.priceMax !== '' ? parseFloat(filters.priceMax) : null;
+  const filterDate = filters.date || null;
+
+  return items.filter((est) => {
+    if (filters.type !== 'all' && est.type !== filters.type) {
+      return false;
+    }
+
+    if (query) {
+      const titleMatch = est.projectName.toLowerCase().includes(query);
+      const clientMatch = est.clientName.toLowerCase().includes(query);
+      const authorMatch = (est.createdByName ?? '').toLowerCase().includes(query);
+      if (!titleMatch && !clientMatch && !authorMatch) {
+        return false;
+      }
+    }
+
+    if (priceMin !== null && !Number.isNaN(priceMin) && est.totalWithVat < priceMin) {
+      return false;
+    }
+
+    if (priceMax !== null && !Number.isNaN(priceMax) && est.totalWithVat > priceMax) {
+      return false;
+    }
+
+    if (filterDate) {
+      const estDate = est.updatedAt.slice(0, 10);
+      if (estDate !== filterDate) return false;
+    }
+
+    return true;
+  });
 }
 
 export function HomePage() {
@@ -98,6 +99,8 @@ export function HomePage() {
   const { user, firebaseReady } = useAuth();
   const [estimates, setEstimates] = useState<EstimateListItem[]>([]);
   const [tab, setTab] = useState<EstimatesTab>('active');
+  const [filters, setFilters] = useState<EstimatesFilterState>(DEFAULT_ESTIMATES_FILTERS);
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [cloudStatus, setCloudStatus] = useState<CloudConnectionStatus>('checking');
   const [cloudModalOpen, setCloudModalOpen] = useState(false);
@@ -139,7 +142,14 @@ export function HomePage() {
     [estimates]
   );
 
-  const visibleEstimates = tab === 'active' ? activeEstimates : archivedEstimates;
+  const tabEstimates = tab === 'active' ? activeEstimates : archivedEstimates;
+
+  const visibleEstimates = useMemo(
+    () => filterEstimates(tabEstimates, filters),
+    [tabEstimates, filters]
+  );
+
+  const filtersActive = hasActiveFilters(filters);
 
   const runWithLeaveAnimation = async (estimateId: string, action: () => Promise<void>) => {
     setActionError('');
@@ -251,6 +261,10 @@ export function HomePage() {
     }
   };
 
+  const handleResetFilters = () => {
+    setFilters(DEFAULT_ESTIMATES_FILTERS);
+  };
+
   return (
     <div className="page home-page">
       <header className="page-header">
@@ -260,34 +274,45 @@ export function HomePage() {
             Интерактивный расчёт бюджета проектов ООО «Аверс Технолоджи»
           </p>
         </div>
+        <button
+          type="button"
+          className={`cloud-status-badge cloud-status-badge--${cloudStatus}`}
+          onClick={() => setCloudModalOpen(true)}
+          title="Настройки облачного подключения"
+        >
+          <span
+            className={`status-dot${cloudStatus === 'connected' || cloudStatus === 'checking' ? ' pulsing' : ''}`}
+            aria-hidden="true"
+          />
+          <span className="cloud-icon" aria-hidden="true">
+            ☁️
+          </span>
+          <span className="status-text">{getCloudStatusBadgeLabel(cloudStatus)}</span>
+        </button>
       </header>
 
       <div className="home-page__hero">
         <CornerFrame accent className="hero-card hero-card--primary">
-          <h2>Быстрый старт</h2>
+          <h2>Проектная смета (по часам)</h2>
           <p>
             Создайте смету с предзаполненными этапами анализа, добавьте задачи, настройте ставки и
             экспортируйте КП в PDF или Excel.
           </p>
-          <Link to="/estimate" className="btn btn-save">
+          <Link to="/estimate" className="btn btn-save btn-save--project">
             Создать смету
           </Link>
         </CornerFrame>
 
-        <button
-          type="button"
-          className={`cloud-status-card cloud-status-card--${cloudStatus}`}
-          onClick={() => setCloudModalOpen(true)}
-        >
-          <CloudStatusIcon status={cloudStatus} />
-          <div className="cloud-status-card__body">
-            <h2 className="cloud-status-card__title">Облачное хранение</h2>
-            <p className="cloud-status-card__message">{getCloudStatusMessage(cloudStatus)}</p>
-          </div>
-          <span className="cloud-status-card__chevron" aria-hidden="true">
-            ›
-          </span>
-        </button>
+        <CornerFrame accent className="hero-card hero-card--standard">
+          <h2>Типовое внедрение</h2>
+          <p>
+            Спецификация готового ПО (лицензии и аренда) и стандартных услуг по фиксированному
+            прайсу — без почасового расчёта.
+          </p>
+          <Link to="/estimate?type=standard" className="btn btn-save btn-save--standard">
+            Создать КП (ПО и Услуги)
+          </Link>
+        </CornerFrame>
       </div>
 
       <section className="estimates-registry">
@@ -330,29 +355,48 @@ export function HomePage() {
         {!loading && cloudStatus === 'connected' && estimates.length === 0 && (
           <p className="muted">Пока нет сохранённых смет. Создайте первую!</p>
         )}
-        {!loading && cloudStatus === 'connected' && estimates.length > 0 && visibleEstimates.length === 0 && (
-          <p className="muted">
-            {tab === 'active'
-              ? 'Нет активных смет. Переключитесь в архив или создайте новую.'
-              : 'Архив пуст. Отправьте сюда завершённые сметы с главного списка.'}
-          </p>
-        )}
-        {!loading && visibleEstimates.length > 0 && (
-          <div className={`estimates-list${tab === 'archive' ? ' estimates-list--archive' : ''}`}>
-            {visibleEstimates.map((est) => (
-              <EstimateListCard
-                key={est.id}
-                estimate={est}
-                archivedView={tab === 'archive'}
-                leaving={leavingIds.has(est.id)}
-                busy={busyId === est.id}
-                onDuplicate={handleDuplicate}
-                onArchive={handleArchive}
-                onRestore={handleRestore}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
+        {!loading && cloudStatus === 'connected' && estimates.length > 0 && (
+          <>
+            <EstimatesFilterPanel
+              filters={filters}
+              advancedOpen={advancedFiltersOpen}
+              onFiltersChange={setFilters}
+              onToggleAdvanced={() => setAdvancedFiltersOpen((open) => !open)}
+              onReset={handleResetFilters}
+            />
+
+            {tabEstimates.length === 0 ? (
+              <p className="muted">
+                {tab === 'active'
+                  ? 'Нет активных смет. Переключитесь в архив или создайте новую.'
+                  : 'Архив пуст. Отправьте сюда завершённые сметы с главного списка.'}
+              </p>
+            ) : visibleEstimates.length === 0 ? (
+              <p className="muted">
+                {filtersActive
+                  ? 'Ничего не найдено. Измените параметры поиска или сбросьте фильтры.'
+                  : tab === 'active'
+                    ? 'Нет активных смет. Переключитесь в архив или создайте новую.'
+                    : 'Архив пуст. Отправьте сюда завершённые сметы с главного списка.'}
+              </p>
+            ) : (
+              <div className={`estimates-list${tab === 'archive' ? ' estimates-list--archive' : ''}`}>
+                {visibleEstimates.map((est) => (
+                  <EstimateListCard
+                    key={est.id}
+                    estimate={est}
+                    archivedView={tab === 'archive'}
+                    leaving={leavingIds.has(est.id)}
+                    busy={busyId === est.id}
+                    onDuplicate={handleDuplicate}
+                    onArchive={handleArchive}
+                    onRestore={handleRestore}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
         {actionError && <p className="muted estimates-registry__error">{actionError}</p>}
       </section>

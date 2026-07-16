@@ -1,7 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { Estimate, Rates, RoleHours, Section, Task } from '../types';
 import { DEFAULT_RATES, EMPTY_HOURS } from '../constants/roles';
-import { createDefaultPresentationSlidesSelection } from './presentationSlides';
+import {
+  createDefaultPresentationSlidesSelection,
+  normalizePresentationSlidesSelection,
+} from './presentationSlides';
+import { DEFAULT_STANDARD_VAT_RATE } from './standardCalculator';
 
 export function createTask(
   name: string,
@@ -40,6 +44,7 @@ export function createNewEstimate(
 ): Estimate {
   const now = new Date().toISOString();
   return {
+    type: 'project',
     projectName: 'Новый проект',
     clientName: '',
     description: '',
@@ -54,12 +59,40 @@ export function createNewEstimate(
   };
 }
 
+/** Новая смета «Типовое внедрение (ПО и Услуги)» */
+export function createNewStandardEstimate(
+  overrides: Partial<Estimate> = {}
+): Estimate {
+  const now = new Date().toISOString();
+  return {
+    type: 'standard',
+    projectName: 'Типовое внедрение',
+    clientName: '',
+    description: '',
+    sections: [],
+    rates: DEFAULT_RATES(),
+    standardItems: [],
+    vatRate: DEFAULT_STANDARD_VAT_RATE,
+    clientLogoId: 'none',
+    presentationSlides: createDefaultPresentationSlidesSelection(),
+    isDraft: true,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
+export function isStandardEstimate(estimate: Estimate): boolean {
+  return estimate.type === 'standard';
+}
+
 /** Копия сметы с новыми id разделов/задач и пометкой «(Копия)» в названии. */
 export function buildDuplicateEstimate(source: Estimate): Estimate {
   const now = new Date().toISOString();
   const baseName = source.projectName.trim() || 'Новый проект';
 
   return {
+    type: source.type ?? 'project',
     projectName: `${baseName} (Копия)`,
     clientName: source.clientName ?? '',
     description: source.description ?? '',
@@ -74,6 +107,15 @@ export function buildDuplicateEstimate(source: Estimate): Estimate {
       })),
     })),
     rates: { ...source.rates },
+    ...(source.standardItems
+      ? {
+          standardItems: source.standardItems.map((item) => ({
+            ...item,
+            id: uuidv4(),
+          })),
+        }
+      : {}),
+    ...(source.vatRate !== undefined ? { vatRate: source.vatRate } : {}),
     clientLogoId: source.clientLogoId === 'custom' ? 'custom' : 'none',
     ...(source.clientLogoCustom !== undefined
       ? { clientLogoCustom: source.clientLogoCustom }
@@ -82,12 +124,7 @@ export function buildDuplicateEstimate(source: Estimate): Estimate {
     ...(source.contractTemplateId !== undefined
       ? { contractTemplateId: source.contractTemplateId }
       : {}),
-    presentationSlides: {
-      about: source.presentationSlides?.about === true,
-      recognition: source.presentationSlides?.recognition === true,
-      kiosk: source.presentationSlides?.kiosk === true,
-      contacts: source.presentationSlides?.contacts === true,
-    },
+    presentationSlides: normalizePresentationSlidesSelection(source.presentationSlides),
     isDraft: true,
     createdAt: now,
     updatedAt: now,

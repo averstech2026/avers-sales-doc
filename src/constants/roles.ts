@@ -35,6 +35,7 @@ export const COLLECTIONS = {
   estimates: 'estimates',
   users: 'users',
   companies: 'companies',
+  productsDirectory: 'products_directory',
   contractTemplates: 'contract_templates',
   settings: 'settings',
 } as const;

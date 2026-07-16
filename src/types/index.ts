@@ -57,6 +57,40 @@ export interface EstimateTotals {
   totalWithVat: number;
 }
 
+/** Тип коммерческого предложения */
+export type EstimateType = 'project' | 'standard';
+
+/** Схема оплаты для позиции типового внедрения */
+export type StandardPaymentScheme = 'buyout' | 'rent' | 'fixed';
+
+export type StandardItemKind = 'software' | 'service' | 'hardware';
+
+/** Строка спецификации типового внедрения (ПО и услуги) */
+export interface StandardLineItem {
+  id: string;
+  /** ID из справочника products-directory */
+  catalogId: string;
+  kind: StandardItemKind;
+  name: string;
+  description: string;
+  /** Индивидуальное примечание к строке КП */
+  note?: string;
+  paymentScheme: StandardPaymentScheme;
+  unitPrice: number;
+  quantity: number;
+  unit: string;
+}
+
+/** Итоги типового внедрения */
+export interface StandardEstimateTotals {
+  oneTimeSubtotal: number;
+  oneTimeWithVat: number;
+  recurringMonthly: number;
+  vat: number;
+  itemCount: number;
+  vatRate: number;
+}
+
 export interface EstimateAuthorMeta {
   createdByUid: string;
   createdByName: string;
@@ -71,15 +105,26 @@ export interface PresentationSlides {
   kiosk: boolean;
   /** Final contacts slide — on by default for new estimates */
   contacts: boolean;
+  /** Selected custom slides from the KP library (`slide_*` ids) */
+  customIds?: string[];
 }
 
 export interface Estimate {
   id?: string;
+  /** project — почасовой проект; standard — типовое внедрение ПО и услуг */
+  type?: EstimateType;
   projectName: string;
   clientName: string;
   description: string;
   sections: Section[];
   rates: Rates;
+  /** Спецификация для type === 'standard' */
+  standardItems?: StandardLineItem[];
+  /** Ставка НДС для типового внедрения (фиксированно 5%) */
+  vatRate?: number;
+  /** Кэш итогов для Firestore (пересчитывается при сохранении) */
+  oneTimeTotal?: number;
+  recurringTotal?: number;
   clientLogoId?: ClientLogoId;
   clientLogoCustom?: string | null;
   clientId?: string;
@@ -121,6 +166,32 @@ export type CompanyInput = Omit<Company, 'id' | 'createdAt' | 'updatedAt'> & {
   updatedAt?: string;
 };
 
+/** Тип позиции справочника продуктов и услуг */
+export type CatalogProductType = 'software' | 'service' | 'hardware';
+
+/** Запись справочника products_directory в Firestore */
+export interface CatalogProduct {
+  id: string;
+  type: CatalogProductType;
+  name: string;
+  description: string;
+  unit: string;
+  /** ПО: цена выкупа */
+  oneTimePrice?: number;
+  /** ПО: цена аренды в месяц */
+  subscriptionPrice?: number;
+  /** Услуга / оборудование: фиксированная стоимость */
+  price?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CatalogProductInput = Omit<CatalogProduct, 'id' | 'createdAt' | 'updatedAt'> & {
+  id?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 /** Future: contract templates */
 export interface ContractTemplate {
   id: string;
@@ -138,6 +209,8 @@ export interface EstimateListItem {
   updatedAt: string;
   createdByName?: string;
   isArchived?: boolean;
+  /** project — почасовой проект; standard — типовое внедрение */
+  type: EstimateType;
 }
 
 export interface AiParseResult {

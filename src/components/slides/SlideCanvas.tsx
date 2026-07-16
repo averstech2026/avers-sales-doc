@@ -11,14 +11,16 @@ import {
   type PresentationSlideId,
 } from '../../utils/presentationSlides';
 import { ContactsSlideCanvas } from './ContactsSlideCanvas';
+import { SlideBadgeIcon } from './SlideBadgeIcon';
 
 interface SlideCanvasProps {
-  id: PresentationSlideId;
+  id: PresentationSlideId | string;
   content: AnySlideContent;
+  defaultImageFile?: string;
   className?: string;
 }
 
-export function SlideCanvas({ id, content, className = '' }: SlideCanvasProps) {
+export function SlideCanvas({ id, content, defaultImageFile, className = '' }: SlideCanvasProps) {
   if (isContactsSlideId(id) || isContactsContent(content)) {
     return (
       <ContactsSlideCanvas
@@ -32,6 +34,7 @@ export function SlideCanvas({ id, content, className = '' }: SlideCanvasProps) {
     <StandardSlideCanvas
       id={id}
       content={content as PresentationSlideContent}
+      defaultImageFile={defaultImageFile}
       className={className}
     />
   );
@@ -40,14 +43,16 @@ export function SlideCanvas({ id, content, className = '' }: SlideCanvasProps) {
 function StandardSlideCanvas({
   id,
   content,
+  defaultImageFile,
   className = '',
 }: {
-  id: Exclude<PresentationSlideId, 'contacts'>;
+  id: Exclude<PresentationSlideId, 'contacts'> | string;
   content: PresentationSlideContent;
+  defaultImageFile?: string;
   className?: string;
 }) {
   const bullets = parseBulletLines(content.bulletsText);
-  const imageSrc = resolveSlideImageSrc(content, id);
+  const imageSrc = resolveSlideImageSrc(content, id, defaultImageFile);
   const qrSrc = resolveSlideQrSrc(content, id);
   const showBadge = Boolean(content.badge.trim());
   const showLead = Boolean(content.disclaimer.trim());
@@ -88,7 +93,7 @@ function StandardSlideCanvas({
         <h1 className="slide-title">{content.title || 'Заголовок слайда'}</h1>
         {showBadge && (
           <div className="kp-slide__badge">
-            <span className="kp-slide__badge-icon">AI</span>
+            <SlideBadgeIcon iconId={content.badgeIcon} />
             <span>{content.badge}</span>
           </div>
         )}
@@ -104,15 +109,16 @@ function StandardSlideCanvas({
           {(showSubtitle || bullets.length > 0 || content.body.trim()) && (
             <div className="solutions-block">
               {showSubtitle && <h3 className="solutions-title">{content.subtitle}</h3>}
-              {bullets.length > 0 ? (
+              {content.body.trim() && (
+                <p className="slide-description slide-description--body">{content.body}</p>
+              )}
+              {bullets.length > 0 && (
                 <ul className="solutions-list">
                   {bullets.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
-              ) : content.body.trim() ? (
-                <p className="slide-description slide-description--body">{content.body}</p>
-              ) : null}
+              )}
             </div>
           )}
 

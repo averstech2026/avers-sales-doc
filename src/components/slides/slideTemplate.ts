@@ -1,6 +1,7 @@
 import { AVERS_LOGO } from '../../utils/clientLogo';
 import {
   formatContactsSiteLabel,
+  getSlideBadgeIconMeta,
   parseBulletLines,
   phoneToTelHref,
   resolveContactsMapSrc,
@@ -9,6 +10,7 @@ import {
   type ContactsSlideContent,
   type PresentationSlideContent,
   type PresentationSlideId,
+  type SlideBadgeIconId,
 } from '../../utils/presentationSlides';
 import { loadThemeColors } from '../../utils/personalization';
 
@@ -18,6 +20,12 @@ function escapeHtml(value: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function buildBadgeIconHtml(badgeIcon: SlideBadgeIconId | string | undefined): string {
+  const meta = getSlideBadgeIconMeta(badgeIcon);
+  if (meta.id === 'none') return '';
+  return `<span class="kp-slide__badge-icon ${meta.className}">${escapeHtml(meta.glyph)}</span>`;
 }
 
 /** Shared CSS for standard KP slide layout (editor preview + PDF). */
@@ -93,6 +101,37 @@ export function standardSlideCss(): string {
       align-items: center;
       justify-content: center;
     }
+    .kp-slide__badge-icon--ai {
+      background: linear-gradient(145deg, #7c3aed, #4f46e5);
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .kp-slide__badge-icon--star {
+      background: linear-gradient(145deg, #f59e0b, #d97706);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .kp-slide__badge-icon--bolt {
+      background: linear-gradient(145deg, #f97316, #ea580c);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .kp-slide__badge-icon--shield {
+      background: linear-gradient(145deg, #2563eb, #1d4ed8);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .kp-slide__badge-icon--check {
+      background: linear-gradient(145deg, #16a34a, #15803d);
+      font-size: 14px;
+      font-weight: 800;
+    }
+    .kp-slide__badge-icon--chip {
+      background: linear-gradient(145deg, #0f766e, #115e59);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: -0.2px;
+    }
 
     .slide-content-grid {
       display: grid;
@@ -151,6 +190,9 @@ export function standardSlideCss(): string {
     }
     .solutions-block {
       text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
     .solutions-title {
       font-size: 15px;
@@ -474,14 +516,17 @@ export function embeddedSlideCss(): string {
       text-align: left;
       line-height: 1.2;
     }
+    /* Match .pdf-section-accent */
     .embedded-slide-accent {
-      width: 32px;
-      height: 3px;
+      width: 60px;
+      height: 2px;
       background: ${accent};
       margin-bottom: 12px;
     }
     .embedded-slide-badge {
-      display: inline-block;
+      display: inline-flex;
+      align-items: flex-start;
+      gap: 8px;
       margin: 0 0 10px;
       padding: 6px 10px;
       border-radius: 6px;
@@ -636,96 +681,227 @@ export function embeddedSlideCss(): string {
       border-right-color: #0f172a;
     }
 
-    /* Compact contacts footer — end of estimate document */
-    ${finalContactsSectionCss()}
+    /* Unified footer — signatures + contacts */
+    ${unifiedFooterSectionCss()}
   `;
 }
 
-/** Minimal contacts block at the bottom of the KP (after signatures). */
-export function finalContactsSectionCss(): string {
+export interface UnifiedFooterSignatureParams {
+  signerName: string;
+  signerPosition: string;
+  clientName: string;
+}
+
+/** Integrated KP footer: party signatures (left) + contacts & map (right). */
+export function unifiedFooterSectionCss(): string {
   return `
-    .kp-final-contacts-section {
+    .kp-unified-footer-section {
       width: 100%;
       box-sizing: border-box;
-      margin-top: 50px;
+      margin-top: 40px;
       padding-top: 30px;
-      border-top: 1px solid #e2e8f0;
+      border-top: 2px solid #ef4444;
       page-break-inside: avoid;
     }
-    .contacts-section-title {
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 700;
-      color: #0f172a;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin: 0 0 24px 0;
-      text-align: left;
-    }
-    .contacts-clean-grid {
+    .footer-integration-grid {
       display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
+      grid-template-columns: 1.1fr 0.9fr;
       gap: 40px;
-      align-items: center;
     }
-    .contacts-clean-info {
+    .footer-integration-grid--signatures-only {
+      grid-template-columns: 1fr;
+    }
+    .integrated-section-title {
+      font-family: inherit;
+      font-size: 11px !important;
+      font-weight: 800 !important;
+      text-transform: uppercase;
+      color: #0f172a !important;
+      letter-spacing: 0.8px;
+      margin: 0 0 24px 0 !important;
+      text-align: left !important;
+    }
+    .signatures-double-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .signature-column-block {
       display: flex;
       flex-direction: column;
-      gap: 14px;
     }
-    .contact-item {
+    .sig-role-label {
+      font-size: 9px !important;
+      font-weight: 700 !important;
+      color: #64748b !important;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .sig-company-name {
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      color: #0f172a !important;
+      margin-bottom: 24px;
+      height: 28px;
+      display: flex;
+      align-items: flex-start;
+    }
+    .sig-draw-line {
+      border-bottom: 1px solid #cbd5e1;
+      margin-bottom: 6px;
+      width: 100%;
+    }
+    .sig-author-name {
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      color: #1e293b !important;
+      min-height: 14px;
+    }
+    .sig-author-title {
+      font-size: 10px !important;
+      color: #64748b !important;
+      margin-top: 2px;
+    }
+    .footer-integration-contacts {
+      border-left: 1px solid #e2e8f0;
+      padding-left: 40px;
+    }
+    .integrated-contacts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .int-contact-row {
       display: flex;
       align-items: baseline;
-      font-size: 13px;
-      line-height: 1.5;
+      font-size: 11px !important;
     }
-    .contact-label {
-      font-weight: 600;
-      color: #64748b;
-      min-width: 80px;
-      flex-shrink: 0;
+    .int-contact-label {
+      font-weight: 700 !important;
+      color: #64748b !important;
+      width: 65px;
       display: inline-block;
     }
-    .contact-value {
-      color: #1e293b;
+    .int-contact-value {
+      color: #0f172a !important;
     }
-    .contact-link {
-      color: #0284c7;
-      text-decoration: none;
-      border-bottom: 1px dashed rgba(2, 132, 199, 0.4);
+    .int-contact-link {
+      color: #ef4444 !important;
+      text-decoration: none !important;
+      font-weight: 600;
     }
-    .contact-phone {
-      color: #1e293b;
-      font-weight: 700;
-      text-decoration: none;
+    .int-contact-phone {
+      color: #0f172a !important;
+      font-weight: 800 !important;
+      text-decoration: none !important;
     }
-    .contacts-clean-map {
-      display: flex;
-      justify-content: flex-end;
-    }
-    .map-minimal-frame {
+    .integrated-map-frame {
       width: 100%;
-      max-width: 280px;
-      height: 140px;
-      border-radius: 6px;
+      height: 110px;
+      border-radius: 4px;
       overflow: hidden;
       border: 1px solid #e2e8f0;
     }
-    .map-minimal-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .integrated-map-img {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
       display: block;
     }
   `;
 }
 
+function buildIntegratedContactsColumnHtml(content: ContactsSlideContent): string {
+  const mapSrc = resolveContactsMapSrc(content);
+  const siteHref = escapeHtml(content.site.trim() || 'https://www.averstech.ru');
+  const siteLabel = escapeHtml(formatContactsSiteLabel(content.site));
+  const telHref = escapeHtml(phoneToTelHref(content.phone));
+  const emailHref = escapeHtml(`mailto:${content.email.trim()}`);
+  const sectionTitle = escapeHtml(content.title.trim() || 'Контакты');
+
+  return `
+    <div class="footer-integration-contacts">
+      <h4 class="integrated-section-title">${sectionTitle}</h4>
+      <div class="integrated-contacts-list">
+        <div class="int-contact-row">
+          <span class="int-contact-label">Адрес:</span>
+          <span class="int-contact-value">${escapeHtml(content.address)}</span>
+        </div>
+        <div class="int-contact-row">
+          <span class="int-contact-label">Сайт:</span>
+          <span class="int-contact-value">
+            <a href="${siteHref}" target="_blank" class="int-contact-link">${siteLabel}</a>
+          </span>
+        </div>
+        <div class="int-contact-row">
+          <span class="int-contact-label">Телефон:</span>
+          <span class="int-contact-value">
+            <a href="${telHref}" class="int-contact-phone">${escapeHtml(content.phone)}</a>
+          </span>
+        </div>
+        <div class="int-contact-row">
+          <span class="int-contact-label">Email:</span>
+          <span class="int-contact-value">
+            <a href="${emailHref}" class="int-contact-link">${escapeHtml(content.email)}</a>
+          </span>
+        </div>
+      </div>
+      <div class="integrated-map-frame">
+        <img src="${mapSrc}" alt="Схема проезда" class="integrated-map-img" />
+      </div>
+    </div>
+  `;
+}
+
+export function buildUnifiedFooterSectionHtml(
+  signatures: UnifiedFooterSignatureParams,
+  contacts: ContactsSlideContent | null
+): string {
+  const signerName = signatures.signerName.trim();
+  const signerPosition = signatures.signerPosition.trim();
+  const clientName = signatures.clientName.trim() || '—';
+  const contactsColumn = contacts ? buildIntegratedContactsColumnHtml(contacts) : '';
+  const gridClass = contacts
+    ? 'footer-integration-grid'
+    : 'footer-integration-grid footer-integration-grid--signatures-only';
+
+  return `
+    <div class="kp-unified-footer-section" data-slide="contacts">
+      <div class="${gridClass}">
+        <div class="footer-integration-signatures">
+          <h4 class="integrated-section-title">Согласование сторон</h4>
+          <div class="signatures-double-column">
+            <div class="signature-column-block">
+              <div class="sig-role-label">Исполнитель</div>
+              <div class="sig-company-name">ООО «Аверс Технолоджи»</div>
+              <div class="sig-draw-line"></div>
+              <div class="sig-author-name">${signerName ? escapeHtml(signerName) : '&nbsp;'}</div>
+              <div class="sig-author-title">${signerPosition ? escapeHtml(signerPosition) : 'Директор'}</div>
+            </div>
+            <div class="signature-column-block">
+              <div class="sig-role-label">Заказчик</div>
+              <div class="sig-company-name">${escapeHtml(clientName)}</div>
+              <div class="sig-draw-line"></div>
+              <div class="sig-author-name">&nbsp;</div>
+              <div class="sig-author-title">Уполномоченное лицо</div>
+            </div>
+          </div>
+        </div>
+        ${contactsColumn}
+      </div>
+    </div>
+  `;
+}
+
 export function buildEmbeddedStandardSlideHtml(
-  id: Exclude<PresentationSlideId, 'contacts'>,
-  content: PresentationSlideContent
+  id: Exclude<PresentationSlideId, 'contacts'> | string,
+  content: PresentationSlideContent,
+  defaultImageFile?: string
 ): string {
   const bullets = parseBulletLines(content.bulletsText);
-  const imageSrc = resolveSlideImageSrc(content, id);
+  const imageSrc = resolveSlideImageSrc(content, id, defaultImageFile);
   const qrSrc = resolveSlideQrSrc(content, id);
   const showBadge = Boolean(content.badge.trim());
   const showLead = Boolean(content.disclaimer.trim());
@@ -733,7 +909,7 @@ export function buildEmbeddedStandardSlideHtml(
   const showQr = Boolean(content.qrCaption.trim() && qrSrc);
 
   const badgeHtml = showBadge
-    ? `<div class="embedded-slide-badge">${escapeHtml(content.badge)}</div>`
+    ? `<div class="embedded-slide-badge">${buildBadgeIconHtml(content.badgeIcon)}<span>${escapeHtml(content.badge)}</span></div>`
     : '';
 
   const leadHtml = showLead
@@ -744,18 +920,19 @@ export function buildEmbeddedStandardSlideHtml(
     ? `<h3 class="embedded-solutions-title">${escapeHtml(formatEmbeddedSubtitle(content.subtitle))}</h3>`
     : '';
 
-  const bodyHtml =
+  const listHtml =
     bullets.length > 0
       ? `<ul class="embedded-solutions-list">${bullets
           .map((item) => `<li>${escapeHtml(item)}</li>`)
           .join('')}</ul>`
-      : content.body.trim()
-        ? `<p class="embedded-slide-body">${escapeHtml(content.body)}</p>`
-        : '';
+      : '';
+  const bodyHtml = content.body.trim()
+    ? `<p class="embedded-slide-body">${escapeHtml(content.body)}</p>`
+    : '';
 
   const solutionsHtml =
     showSubtitle || bodyHtml
-      ? `<div class="embedded-solutions">${subtitleHtml}${bodyHtml}</div>`
+      ? `<div class="embedded-solutions">${subtitleHtml}${bodyHtml}${listHtml}</div>`
       : '';
 
   const qrHtml = showQr
@@ -807,50 +984,16 @@ function formatEmbeddedSubtitle(value: string): string {
   return lower.charAt(0).toLocaleUpperCase('ru-RU') + lower.slice(1);
 }
 
-export function buildEmbeddedContactsSlideHtml(content: ContactsSlideContent): string {
-  const mapSrc = resolveContactsMapSrc(content);
-  const siteHref = escapeHtml(content.site.trim() || 'https://www.averstech.ru');
-  const siteLabel = escapeHtml(formatContactsSiteLabel(content.site));
-  const telHref = escapeHtml(phoneToTelHref(content.phone));
-  const emailHref = escapeHtml(`mailto:${content.email.trim()}`);
-  const sectionTitle = escapeHtml(content.title.trim() || 'Контакты компании');
-
-  return `
-    <div class="kp-final-contacts-section" data-slide="contacts">
-      <h3 class="contacts-section-title">${sectionTitle}</h3>
-      <div class="contacts-clean-grid">
-        <div class="contacts-clean-info">
-          <div class="contact-item">
-            <span class="contact-label">Адрес:</span>
-            <span class="contact-value">${escapeHtml(content.address)}</span>
-          </div>
-          <div class="contact-item">
-            <span class="contact-label">Сайт:</span>
-            <span class="contact-value">
-              <a href="${siteHref}" target="_blank" class="contact-link">${siteLabel}</a>
-            </span>
-          </div>
-          <div class="contact-item">
-            <span class="contact-label">Телефон:</span>
-            <span class="contact-value">
-              <a href="${telHref}" class="contact-phone">${escapeHtml(content.phone)}</a>
-            </span>
-          </div>
-          <div class="contact-item">
-            <span class="contact-label">Email:</span>
-            <span class="contact-value">
-              <a href="${emailHref}" class="contact-link">${escapeHtml(content.email)}</a>
-            </span>
-          </div>
-        </div>
-        <div class="contacts-clean-map">
-          <div class="map-minimal-frame">
-            <img src="${mapSrc}" alt="Схема проезда" class="map-minimal-img" />
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+/** @deprecated Use buildUnifiedFooterSectionHtml — kept for call-site compatibility. */
+export function buildEmbeddedContactsSlideHtml(
+  content: ContactsSlideContent,
+  signatures: UnifiedFooterSignatureParams = {
+    signerName: '',
+    signerPosition: '',
+    clientName: '—',
+  }
+): string {
+  return buildUnifiedFooterSectionHtml(signatures, content);
 }
 
 export function buildStandardSlideHtml(
@@ -866,7 +1009,7 @@ export function buildStandardSlideHtml(
   const showQr = Boolean(content.qrCaption.trim() && qrSrc);
 
   const badgeHtml = showBadge
-    ? `<div class="kp-slide__badge"><span class="kp-slide__badge-icon">AI</span><span>${escapeHtml(content.badge)}</span></div>`
+    ? `<div class="kp-slide__badge">${buildBadgeIconHtml(content.badgeIcon)}<span>${escapeHtml(content.badge)}</span></div>`
     : '';
 
   const leadHtml = showLead
@@ -877,18 +1020,19 @@ export function buildStandardSlideHtml(
     ? `<h3 class="solutions-title">${escapeHtml(content.subtitle)}</h3>`
     : '';
 
-  const bodyHtml =
+  const listHtml =
     bullets.length > 0
       ? `<ul class="solutions-list">${bullets
           .map((item) => `<li>${escapeHtml(item)}</li>`)
           .join('')}</ul>`
-      : content.body.trim()
-        ? `<p class="slide-description slide-description--body">${escapeHtml(content.body)}</p>`
-        : '';
+      : '';
+  const bodyHtml = content.body.trim()
+    ? `<p class="slide-description slide-description--body">${escapeHtml(content.body)}</p>`
+    : '';
 
   const solutionsHtml =
     showSubtitle || bodyHtml
-      ? `<div class="solutions-block">${subtitleHtml}${bodyHtml}</div>`
+      ? `<div class="solutions-block">${subtitleHtml}${bodyHtml}${listHtml}</div>`
       : '';
 
   const qrHtml = showQr

@@ -1,17 +1,23 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { PresentationSlideContent, PresentationSlideId } from '../../utils/presentationSlides';
 import {
   DEFAULT_MAX_PHOTO_CHARS,
   DEFAULT_MAX_QR_CHARS,
+  SLIDE_BADGE_ICON_OPTIONS,
   compressImageFile,
+  createBlankSlideContent,
   createDefaultSlideContent,
+  isCustomSlideId,
 } from '../../utils/presentationSlides';
+import { EditorBackLink } from '../ui/EditorBackLink';
 import { SlideCanvas } from './SlideCanvas';
+import { ScaledSlideFrame } from './ScaledSlideFrame';
 
 interface SlideEditorProps {
-  id: Exclude<PresentationSlideId, 'contacts'>;
+  id: Exclude<PresentationSlideId, 'contacts'> | string;
   menuTitle: string;
   initial: PresentationSlideContent;
+  defaultImageFile?: string;
   saving: boolean;
   onSave: (content: PresentationSlideContent) => Promise<void>;
   onCancel: () => void;
@@ -21,6 +27,7 @@ export function SlideEditor({
   id,
   menuTitle,
   initial,
+  defaultImageFile,
   saving,
   onSave,
   onCancel,
@@ -29,6 +36,21 @@ export function SlideEditor({
   const [error, setError] = useState('');
   const imageInputRef = useRef<HTMLInputElement>(null);
   const qrInputRef = useRef<HTMLInputElement>(null);
+
+  const isDirty = useMemo(
+    () => JSON.stringify(draft) !== JSON.stringify(initial),
+    [draft, initial]
+  );
+
+  const handleExit = () => {
+    if (isDirty) {
+      const confirmExit = window.confirm(
+        'Изменения в слайде не сохранены. Выйти без сохранения?'
+      );
+      if (!confirmExit) return;
+    }
+    onCancel();
+  };
 
   const patch = (partial: Partial<PresentationSlideContent>) => {
     setDraft((prev) => ({ ...prev, ...partial }));
@@ -57,7 +79,9 @@ export function SlideEditor({
     if (!window.confirm('Сбросить тексты слайда к значениям по умолчанию? Фото сохранится.')) {
       return;
     }
-    const defaults = createDefaultSlideContent(id);
+    const defaults = isCustomSlideId(id)
+      ? createBlankSlideContent()
+      : createDefaultSlideContent(id as Exclude<PresentationSlideId, 'contacts'>);
     setDraft({
       ...defaults,
       imageDataUrl: draft.imageDataUrl,
@@ -76,6 +100,7 @@ export function SlideEditor({
       ...draft,
       title: draft.title.trim(),
       badge: draft.badge.trim(),
+      badgeIcon: draft.badgeIcon,
       disclaimer: draft.disclaimer.trim(),
       subtitle: draft.subtitle.trim(),
       bulletsText: draft.bulletsText,
@@ -86,8 +111,9 @@ export function SlideEditor({
 
   return (
     <div className="slide-editor">
-      <div className="slide-editor__toolbar">
-        <div>
+      <div className="slide-editor__toolbar slide-editor__toolbar--sticky">
+        <div className="editor-header-left">
+          <EditorBackLink label="К слайдам КП" onClick={handleExit} disabled={saving} />
           <h2 className="slide-editor__heading">Редактор: {menuTitle}</h2>
           <p className="slide-editor__hint">
             Единая компоновка для всех слайдов. Пустые необязательные поля скрываются на
@@ -95,9 +121,6 @@ export function SlideEditor({
           </p>
         </div>
         <div className="slide-editor__toolbar-actions">
-          <button type="button" className="btn btn--ghost" onClick={onCancel} disabled={saving}>
-            Назад к списку
-          </button>
           <button type="button" className="btn btn--ghost" onClick={handleResetTexts} disabled={saving}>
             Сбросить тексты
           </button>
@@ -124,15 +147,43 @@ export function SlideEditor({
             />
           </label>
 
-          <label className="field">
+          <div className="field">
             <span>Плашка (необязательно)</span>
+            <div className="icon-selector-group">
+              <span className="field-meta-label">Иконка плашки</span>
+              <div className="icon-picker-row" role="radiogroup" aria-label="Иконка плашки">
+                {SLIDE_BADGE_ICON_OPTIONS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={`icon-picker-btn${
+                      draft.badgeIcon === option.id ? ' active' : ''
+                    }`}
+                    data-icon={option.id}
+                    onClick={() => patch({ badgeIcon: option.id })}
+                    disabled={saving}
+                    role="radio"
+                    aria-checked={draft.badgeIcon === option.id}
+                    title={option.pickerTitle}
+                  >
+                    {option.id === 'none' ? (
+                      <span className="icon-none-symbol">—</span>
+                    ) : (
+                      <span className={`icon-preview-badge ${option.pickerBadgeClass}`}>
+                        {option.glyph}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
             <textarea
               rows={2}
               value={draft.badge}
               onChange={(e) => patch({ badge: e.target.value })}
               placeholder="Например: основано на AI…"
             />
-          </label>
+          </div>
 
           <label className="field">
             <span>Вводный текст / примечание (под линией)</span>
@@ -153,22 +204,22 @@ export function SlideEditor({
           </label>
 
           <label className="field">
+            <span>Абзац</span>
+            <textarea
+              rows={4}
+              value={draft.body}
+              onChange={(e) => patch({ body: e.target.value })}
+              placeholder="Текст описания…"
+            />
+          </label>
+
+          <label className="field">
             <span>Список (по одному пункту на строку)</span>
             <textarea
               rows={6}
               value={draft.bulletsText}
               onChange={(e) => patch({ bulletsText: e.target.value })}
               placeholder={'пункт 1\nпункт 2'}
-            />
-          </label>
-
-          <label className="field">
-            <span>Абзац (если список пуст)</span>
-            <textarea
-              rows={4}
-              value={draft.body}
-              onChange={(e) => patch({ body: e.target.value })}
-              placeholder="Текст описания…"
             />
           </label>
 
@@ -240,9 +291,9 @@ export function SlideEditor({
         <div className="slide-editor__preview">
           <div className="slide-editor__preview-label">Живой предпросмотр</div>
           <div className="slide-editor__preview-stage">
-            <div className="slide-editor__preview-scale">
-              <SlideCanvas id={id} content={draft} />
-            </div>
+            <ScaledSlideFrame>
+              <SlideCanvas id={id} content={draft} defaultImageFile={defaultImageFile} />
+            </ScaledSlideFrame>
           </div>
         </div>
       </div>

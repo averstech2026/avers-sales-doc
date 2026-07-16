@@ -24,12 +24,24 @@ import type {
   EstimateListItem,
   Company,
   CompanyInput,
+  CatalogProduct,
+  CatalogProductInput,
+  CatalogProductType,
   ContractTemplate,
   EstimateAuthorMeta,
 } from '../types';
 import { calculateEstimateTotals } from '../utils/calculator';
+import { calculateStandardTotals } from '../utils/standardCalculator';
+import { isStandardEstimate } from '../utils/estimateFactory';
 import { buildDuplicateEstimate } from '../utils/estimateFactory';
+import { normalizePresentationSlidesSelection } from '../utils/presentationSlides';
 import { COMPANY_DEFAULTS } from '../models/firestore';
+import {
+  catalogProductsToDirectory,
+  DEFAULT_PRODUCTS_DIRECTORY,
+  setProductsCatalogCache,
+  type ProductsDirectory,
+} from '../data/products-directory';
 
 function toIso(value: unknown): string {
   if (value instanceof Timestamp) return value.toDate().toISOString();
@@ -52,6 +64,7 @@ export async function saveEstimate(
 
   const data: Record<string, unknown> = {
     id,
+    type: estimate.type ?? 'project',
     projectName: estimate.projectName,
     clientName: estimate.clientName ?? '',
     description: estimate.description ?? '',
@@ -77,18 +90,27 @@ export async function saveEstimate(
     data.contractTemplateId = estimate.contractTemplateId;
   }
   if (estimate.presentationSlides !== undefined) {
-    data.presentationSlides = {
-      about: estimate.presentationSlides.about === true,
-      recognition: estimate.presentationSlides.recognition === true,
-      kiosk: estimate.presentationSlides.kiosk === true,
-      contacts: estimate.presentationSlides.contacts === true,
-    };
+    data.presentationSlides = normalizePresentationSlidesSelection(
+      estimate.presentationSlides
+    );
   }
   if (estimate.isDraft !== undefined) {
     data.isDraft = estimate.isDraft;
   }
   if (estimate.isArchived === true) {
     data.isArchived = true;
+  }
+  if (estimate.standardItems !== undefined) {
+    data.standardItems = estimate.standardItems;
+  }
+  if (estimate.vatRate !== undefined) {
+    data.vatRate = estimate.vatRate;
+  }
+  if (estimate.oneTimeTotal !== undefined) {
+    data.oneTimeTotal = estimate.oneTimeTotal;
+  }
+  if (estimate.recurringTotal !== undefined) {
+    data.recurringTotal = estimate.recurringTotal;
   }
 
   await setDoc(doc(db, COLLECTIONS.estimates, id), data);
@@ -116,6 +138,13 @@ export async function loadEstimate(id: string): Promise<Estimate | null> {
     id: snap.id,
     createdAt: toIso(data.createdAt),
     updatedAt: toIso(data.updatedAt),
+    ...(data.presentationSlides !== undefined
+      ? {
+          presentationSlides: normalizePresentationSlidesSelection(
+            data.presentationSlides
+          ),
+        }
+      : {}),
   };
 }
 
@@ -160,15 +189,18 @@ export async function listEstimates(max = 100): Promise<EstimateListItem[]> {
 
   return snap.docs.map((d) => {
     const data = d.data() as Estimate;
-    const totals = calculateEstimateTotals(data);
+    const totalWithVat = isStandardEstimate(data)
+      ? calculateStandardTotals(data.standardItems ?? [], data.vatRate ?? 0.05).oneTimeWithVat
+      : calculateEstimateTotals(data).totalWithVat;
     return {
       id: d.id,
       projectName: data.projectName || 'Без названия',
       clientName: data.clientName || '—',
-      totalWithVat: totals.totalWithVat,
+      totalWithVat,
       updatedAt: toIso(data.updatedAt),
       createdByName: resolveListAuthorName(data, nameByUid),
       isArchived: data.isArchived === true,
+      type: data.type === 'standard' ? 'standard' : 'project',
     };
   });
 }
@@ -192,6 +224,7 @@ export async function toggleArchiveEstimate(
 
   const data: Record<string, unknown> = {
     id: estimateId,
+    type: estimate.type ?? 'project',
     projectName: estimate.projectName || 'Без названия',
     clientName: estimate.clientName ?? '',
     description: estimate.description ?? '',
@@ -218,15 +251,18 @@ export async function toggleArchiveEstimate(
     data.contractTemplateId = estimate.contractTemplateId;
   }
   if (estimate.presentationSlides !== undefined) {
-    data.presentationSlides = {
-      about: estimate.presentationSlides.about === true,
-      recognition: estimate.presentationSlides.recognition === true,
-      kiosk: estimate.presentationSlides.kiosk === true,
-      contacts: estimate.presentationSlides.contacts === true,
-    };
+    data.presentationSlides = normalizePresentationSlidesSelection(
+      estimate.presentationSlides
+    );
   }
   if (estimate.isDraft !== undefined) {
     data.isDraft = estimate.isDraft;
+  }
+  if (estimate.standardItems !== undefined) {
+    data.standardItems = estimate.standardItems;
+  }
+  if (estimate.vatRate !== undefined) {
+    data.vatRate = estimate.vatRate;
   }
 
   await setDoc(doc(db, COLLECTIONS.estimates, estimateId), data, { merge: true });
@@ -326,6 +362,161 @@ export async function deleteCompany(id: string): Promise<void> {
   }
   const db = getDb();
   await deleteDoc(doc(db, COLLECTIONS.companies, id));
+}
+
+function mapCatalogProductDoc(id: string, raw: Record<string, unknown>): CatalogProduct {
+  const rawType = String(raw.type ?? 'software');
+  const type: CatalogProductType =
+    rawType === 'service' ? 'service' : rawType === 'hardware' ? 'hardware' : 'software';
+  const defaultUnit = type === 'service' ? 'услуга' : type === 'hardware' ? 'шт.' : 'лиц.';
+  const base: CatalogProduct = {
+    id,
+    type,
+    name: String(raw.name ?? ''),
+    description: String(raw.description ?? ''),
+    unit: String(raw.unit ?? defaultUnit),
+    createdAt: toIso(raw.createdAt),
+    updatedAt: toIso(raw.updatedAt),
+  };
+
+  if (type === 'software') {
+    return {
+      ...base,
+      oneTimePrice: Number(raw.oneTimePrice) || 0,
+      subscriptionPrice: Number(raw.subscriptionPrice) || 0,
+    };
+  }
+
+  return {
+    ...base,
+    price: Number(raw.price) || 0,
+  };
+}
+
+export async function listCatalogProducts(): Promise<CatalogProduct[]> {
+  if (!isFirebaseConfigured()) return [];
+  const db = getDb();
+  try {
+    const q = query(collection(db, COLLECTIONS.productsDirectory), orderBy('name', 'asc'));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => mapCatalogProductDoc(d.id, d.data() as Record<string, unknown>));
+  } catch {
+    const snap = await getDocs(collection(db, COLLECTIONS.productsDirectory));
+    return snap.docs
+      .map((d) => mapCatalogProductDoc(d.id, d.data() as Record<string, unknown>))
+      .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  }
+}
+
+export async function saveCatalogProduct(product: CatalogProductInput): Promise<string> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase не настроен');
+  }
+
+  const db = getDb();
+  const id = product.id || uuidv4();
+  const now = new Date().toISOString();
+  const name = product.name.trim();
+  if (!name) {
+    throw new Error('Укажите наименование');
+  }
+
+  const type: CatalogProductType =
+    product.type === 'service'
+      ? 'service'
+      : product.type === 'hardware'
+        ? 'hardware'
+        : 'software';
+  const defaultUnit = type === 'service' ? 'услуга' : type === 'hardware' ? 'шт.' : 'лиц.';
+  const data: Record<string, unknown> = {
+    id,
+    type,
+    name,
+    description: (product.description ?? '').trim(),
+    unit: (product.unit ?? defaultUnit).trim() || defaultUnit,
+    createdAt: product.createdAt || now,
+    updatedAt: now,
+  };
+
+  if (type === 'software') {
+    data.oneTimePrice = Math.max(0, Number(product.oneTimePrice) || 0);
+    data.subscriptionPrice = Math.max(0, Number(product.subscriptionPrice) || 0);
+  } else {
+    data.price = Math.max(0, Number(product.price) || 0);
+  }
+
+  await setDoc(doc(db, COLLECTIONS.productsDirectory, id), data);
+  return id;
+}
+
+export async function deleteCatalogProduct(id: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase не настроен');
+  }
+  const db = getDb();
+  await deleteDoc(doc(db, COLLECTIONS.productsDirectory, id));
+}
+
+/** Засеять демо-каталог, если коллекция пуста */
+async function seedDefaultCatalogProducts(): Promise<void> {
+  const now = new Date().toISOString();
+  const writes: Promise<string>[] = [];
+
+  for (const item of DEFAULT_PRODUCTS_DIRECTORY.software) {
+    writes.push(
+      saveCatalogProduct({
+        id: item.id,
+        type: 'software',
+        name: item.name,
+        description: item.description,
+        unit: item.unit,
+        oneTimePrice: item.oneTimePrice,
+        subscriptionPrice: item.subscriptionPrice,
+        createdAt: now,
+      })
+    );
+  }
+  for (const item of DEFAULT_PRODUCTS_DIRECTORY.services) {
+    writes.push(
+      saveCatalogProduct({
+        id: item.id,
+        type: 'service',
+        name: item.name,
+        description: item.description,
+        unit: item.unit,
+        price: item.price,
+        createdAt: now,
+      })
+    );
+  }
+
+  await Promise.all(writes);
+}
+
+/**
+ * Загрузить справочник для редактора КП.
+ * Если коллекция пуста — сидирует дефолтные позиции (Аверс. Фронт и т.д.).
+ */
+export async function loadProductsDirectory(): Promise<ProductsDirectory> {
+  if (!isFirebaseConfigured()) {
+    const fallback = {
+      software: [...DEFAULT_PRODUCTS_DIRECTORY.software],
+      services: [...DEFAULT_PRODUCTS_DIRECTORY.services],
+      hardware: [...DEFAULT_PRODUCTS_DIRECTORY.hardware],
+    };
+    setProductsCatalogCache(fallback);
+    return fallback;
+  }
+
+  let items = await listCatalogProducts();
+  if (items.length === 0) {
+    await seedDefaultCatalogProducts();
+    items = await listCatalogProducts();
+  }
+
+  const directory = catalogProductsToDirectory(items);
+  setProductsCatalogCache(directory);
+  return directory;
 }
 
 export async function listContractTemplates(): Promise<ContractTemplate[]> {

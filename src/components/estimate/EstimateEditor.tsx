@@ -594,6 +594,63 @@ function SectionBlock({
 
 }
 
+function HourStepper({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const hours = Math.max(0, value || 0);
+
+  const stepHour = (delta: number) => {
+    onChange(Math.max(0, Math.min(999, hours + delta)));
+  };
+
+  const handleHourInput = (raw: string) => {
+    if (raw === '') {
+      onChange(0);
+      return;
+    }
+    const parsed = parseInt(raw, 10);
+    if (Number.isNaN(parsed) || parsed < 0) {
+      onChange(0);
+      return;
+    }
+    onChange(Math.min(999, parsed));
+  };
+
+  return (
+    <div className="hour-stepper">
+      <button
+        type="button"
+        className="stepper-btn minus"
+        onClick={() => stepHour(-1)}
+        aria-label="Уменьшить часы"
+      >
+        –
+      </button>
+      <input
+        type="number"
+        className="stepper-input"
+        value={hours || ''}
+        min={0}
+        max={999}
+        placeholder="0"
+        onChange={(e) => handleHourInput(e.target.value)}
+      />
+      <button
+        type="button"
+        className="stepper-btn plus"
+        onClick={() => stepHour(1)}
+        aria-label="Увеличить часы"
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
 interface TaskRowProps {
   task: Task;
   rates: Rates;
@@ -671,34 +728,25 @@ function TaskRow({ task, rates, onTaskChange, onHoursChange, onRemove }: TaskRow
       className={`estimate-row-grid estimate-table__task-row${showDescription ? ' estimate-table__task-row--expanded' : ''}`}
       role="row"
     >
-      <div className="estimate-grid__task task-info-col" role="cell">
-        <div className="task-title-container" role="group" aria-label="Название задачи">
-          <textarea
-            ref={titleRef}
-            className="inline-input task-title-input"
-            rows={1}
-            value={task.name}
-            onChange={(e) => onTaskChange({ name: e.target.value })}
-            onInput={resizeTitleField}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') e.preventDefault();
-            }}
-            placeholder="Название задачи"
-            aria-label="Название задачи"
-          />
-          <button
-            type="button"
-            className={`btn-toggle-description${showDescription ? ' is-active' : ''}`}
-            onClick={handleToggleDesc}
-            title="Добавить/редактировать примечание"
-            aria-label="Добавить или изменить примечание к задаче"
-            aria-expanded={isEditingDesc}
-          >
-            📝
-          </button>
-        </div>
-        {showDescription &&
-          (isEditingDesc ? (
+      <div className="estimate-grid__task task-info-col task-cell" role="cell">
+        <div className="task-cell-inner">
+          <div className="task-title-wrapper" role="group" aria-label="Название задачи">
+            <textarea
+              ref={titleRef}
+              className="inline-input task-title-input task-title-text"
+              rows={1}
+              value={task.name}
+              onChange={(e) => onTaskChange({ name: e.target.value })}
+              onInput={resizeTitleField}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.preventDefault();
+              }}
+              placeholder="Название задачи"
+              aria-label="Название задачи"
+            />
+          </div>
+
+          {isEditingDesc ? (
             <div className="task-description-editor">
               <textarea
                 ref={descInputRef}
@@ -718,21 +766,49 @@ function TaskRow({ task, rates, onTaskChange, onHoursChange, onRemove }: TaskRow
                 </button>
               </div>
             </div>
+          ) : hasDescription ? (
+            <div className="task-note-container updated-note-style">
+              <button
+                type="button"
+                className="note-edit-trigger"
+                onClick={handleToggleDesc}
+                title="Редактировать примечание"
+                aria-label="Редактировать примечание к задаче"
+              >
+                <svg
+                  className="note-pencil-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+              <span className="task-note-text">{task.description}</span>
+            </div>
           ) : (
-            <div className="task-description-display">{task.description}</div>
-          ))}
+            <div className="add-note-btn-wrapper">
+              <button
+                type="button"
+                className="elegant-text-note-btn"
+                onClick={handleToggleDesc}
+                aria-label="Добавить примечание к задаче"
+              >
+                + примечание
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {ROLES.map((role) => (
         <div key={role.id} className="estimate-grid__hour task-values-col" role="cell">
-          <input
-            type="number"
-            className="hour-input"
-            min={0}
-            step={1}
-            value={task.hours[role.id] || ''}
-            onChange={(e) => onHoursChange(role.id, Number(e.target.value) || 0)}
-            placeholder="0"
+          <HourStepper
+            value={task.hours[role.id] || 0}
+            onChange={(next) => onHoursChange(role.id, next)}
           />
         </div>
       ))}

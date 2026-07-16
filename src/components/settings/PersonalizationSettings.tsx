@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ColorPickerField } from '../ui/ColorPickerField';
+import { OpacityField } from '../ui/OpacityField';
 import { usePersonalization } from '../../context/PersonalizationContext';
 import {
   DEFAULT_THEME_COLORS,
@@ -25,6 +26,12 @@ const COLOR_FIELDS: Array<{ key: keyof ThemeColors; label: string }> = [
   { key: 'cornersNeutral', label: 'Уголки основные (верх-слева, низ-справа)' },
 ];
 
+const OPACITY_FIELDS: Array<{ key: keyof ThemeColors; label: string }> = [
+  { key: 'sidebarBrandOpacity', label: 'Название «Аверс Технолоджи»' },
+  { key: 'sidebarLinkOpacity', label: 'Пункты меню' },
+  { key: 'sidebarGroupOpacity', label: 'Заголовки секций (Главное, Скоро)' },
+];
+
 export function PersonalizationSettings({ open = true, onSaved }: PersonalizationSettingsProps) {
   const { themeColors, setThemeColors } = usePersonalization();
   const [draft, setDraft] = useState<ThemeColors>(themeColors);
@@ -39,7 +46,7 @@ export function PersonalizationSettings({ open = true, onSaved }: Personalizatio
 
   const hasChanges = !themeColorsEqual(draft, themeColors);
 
-  const updateDraft = (key: keyof ThemeColors, value: string) => {
+  const updateDraft = (key: keyof ThemeColors, value: string | number) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
     setSaved(false);
   };
@@ -77,7 +84,23 @@ export function PersonalizationSettings({ open = true, onSaved }: Personalizatio
             <ColorPickerField
               key={field.key}
               label={field.label}
-              value={draft[field.key]}
+              value={draft[field.key] as string}
+              onChange={(value) => updateDraft(field.key, value)}
+            />
+          ))}
+        </div>
+
+        <h4 className="personalization-settings__subtitle">Прозрачность текста в боковом меню</h4>
+        <p className="personalization-settings__hint personalization-settings__hint--compact">
+          Настройте яркость отдельно для названия компании, пунктов меню и заголовков секций.
+        </p>
+
+        <div className="opacity-field-grid">
+          {OPACITY_FIELDS.map((field) => (
+            <OpacityField
+              key={field.key}
+              label={field.label}
+              value={draft[field.key] as number}
               onChange={(value) => updateDraft(field.key, value)}
             />
           ))}

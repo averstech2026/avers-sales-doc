@@ -7,6 +7,7 @@ import { AuthContainer } from './components/auth/AuthContainer';
 import { HomePage } from './pages/HomePage';
 import { EstimatePage } from './pages/EstimatePage';
 import { CompaniesPage } from './pages/CompaniesPage';
+import { ProductsPage } from './pages/ProductsPage';
 import { SlidesPage } from './pages/SlidesPage';
 
 function AppRoutes() {
@@ -30,6 +31,7 @@ function AppRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/estimate" element={<EstimatePage />} />
         <Route path="/companies" element={<CompaniesPage />} />
+        <Route path="/products" element={<ProductsPage />} />
         <Route path="/slides" element={<SlidesPage />} />
       </Routes>
     </Layout>

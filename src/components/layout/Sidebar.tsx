@@ -59,8 +59,9 @@ function SlidesIcon() {
 }
 
 const navItems: { to: string; label: string; icon: ReactNode }[] = [
-  { to: '/', label: 'Сметы', icon: <EstimatesIcon /> },
-  { to: '/companies', label: 'Мои контрагенты', icon: '🏢' },
+  { to: '/', label: 'Сметы и КП', icon: <EstimatesIcon /> },
+  { to: '/companies', label: 'Контрагенты', icon: '🏢' },
+  { to: '/products', label: 'Продукты и услуги', icon: '💿' },
   { to: '/slides', label: 'Слайды КП', icon: <SlidesIcon /> },
 ];
 

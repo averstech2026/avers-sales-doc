@@ -9,6 +9,7 @@ import {
   type PdfExportOptions,
 } from '../../services/export/pdf';
 import { loadPresentationSlidesLibrary } from '../../services/presentationSlides';
+import { hasAnyPresentationSlideSelected } from '../../utils/presentationSlides';
 
 interface PdfPreviewModalProps {
   open: boolean;
@@ -20,13 +21,7 @@ interface PdfPreviewModalProps {
 }
 
 function hasAnySlide(estimate: Estimate): boolean {
-  const s = estimate.presentationSlides;
-  return (
-    s?.about === true ||
-    s?.recognition === true ||
-    s?.kiosk === true ||
-    s?.contacts === true
-  );
+  return hasAnyPresentationSlideSelected(estimate.presentationSlides);
 }
 
 export function PdfPreviewModal({
@@ -87,7 +82,7 @@ export function PdfPreviewModal({
           <p className="pdf-preview__hint">
             Так будет выглядеть коммерческое предложение после экспорта.
             {slidesOn
-              ? ' Выбранные слайды встраиваются в документ: маркетинговые — после шапки, «Контакты» — под подписями.'
+              ? ' Выбранные слайды встраиваются в документ: маркетинговые — после шапки, «Контакты» — в объединённом подвале с подписями.'
               : ''}
           </p>
           <div className="pdf-preview__actions">

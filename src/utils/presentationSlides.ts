@@ -1,10 +1,101 @@
 export type PresentationSlideId = 'about' | 'recognition' | 'kiosk' | 'contacts';
 
+export type SlideBadgeIconId = 'ai' | 'star' | 'bolt' | 'shield' | 'check' | 'chip' | 'none';
+
+export interface SlideBadgeIconOption {
+  id: SlideBadgeIconId;
+  label: string;
+  glyph: string;
+  className: string;
+  /** Native tooltip in the compact icon picker */
+  pickerTitle: string;
+  /** CSS class for the mini preview badge in the picker */
+  pickerBadgeClass: string;
+}
+
+export const SLIDE_BADGE_ICON_OPTIONS: SlideBadgeIconOption[] = [
+  {
+    id: 'none',
+    label: 'Без иконки',
+    glyph: '',
+    className: '',
+    pickerTitle: 'Без иконки',
+    pickerBadgeClass: '',
+  },
+  {
+    id: 'ai',
+    label: 'AI',
+    glyph: 'AI',
+    className: 'kp-slide__badge-icon--ai',
+    pickerTitle: 'ИИ / Искусственный интеллект',
+    pickerBadgeClass: 'badge-purple',
+  },
+  {
+    id: 'star',
+    label: 'Звезда',
+    glyph: '★',
+    className: 'kp-slide__badge-icon--star',
+    pickerTitle: 'Звезда / Избранное',
+    pickerBadgeClass: 'badge-orange',
+  },
+  {
+    id: 'bolt',
+    label: 'Инновации',
+    glyph: '⚡',
+    className: 'kp-slide__badge-icon--bolt',
+    pickerTitle: 'Инновации / Молния',
+    pickerBadgeClass: 'badge-red-orange',
+  },
+  {
+    id: 'shield',
+    label: 'Надёжность',
+    glyph: '◆',
+    className: 'kp-slide__badge-icon--shield',
+    pickerTitle: 'Надёжность / Алмаз',
+    pickerBadgeClass: 'badge-blue',
+  },
+  {
+    id: 'check',
+    label: 'Качество',
+    glyph: '✓',
+    className: 'kp-slide__badge-icon--check',
+    pickerTitle: 'Качество / Галочка',
+    pickerBadgeClass: 'badge-green',
+  },
+  {
+    id: 'chip',
+    label: 'Технологии',
+    glyph: 'IoT',
+    className: 'kp-slide__badge-icon--chip',
+    pickerTitle: 'Технологии / IoT',
+    pickerBadgeClass: 'badge-dark-green',
+  },
+];
+
+export function getSlideBadgeIconMeta(
+  id: SlideBadgeIconId | string | undefined
+): SlideBadgeIconOption {
+  const found = SLIDE_BADGE_ICON_OPTIONS.find((option) => option.id === id);
+  return found ?? SLIDE_BADGE_ICON_OPTIONS.find((option) => option.id === 'none')!;
+}
+
+export function normalizeBadgeIconId(
+  value: unknown,
+  fallback: SlideBadgeIconId = 'none'
+): SlideBadgeIconId {
+  if (typeof value === 'string' && SLIDE_BADGE_ICON_OPTIONS.some((option) => option.id === value)) {
+    return value as SlideBadgeIconId;
+  }
+  return fallback;
+}
+
 /** Editable content of one KP slide (same layout for all slides). */
 export interface PresentationSlideContent {
   title: string;
   /** Highlight badge under the title; empty hides the block */
   badge: string;
+  /** Icon shown in the badge pill; `none` hides the icon */
+  badgeIcon: SlideBadgeIconId;
   disclaimer: string;
   subtitle: string;
   /** Newline-separated bullet items; takes priority over `body` when non-empty */
@@ -29,11 +120,23 @@ export interface ContactsSlideContent {
 
 export type AnySlideContent = PresentationSlideContent | ContactsSlideContent;
 
+/** User-created content slide (standard layout, not contacts). */
+export interface CustomPresentationSlide {
+  id: string;
+  menuTitle: string;
+  menuDescription: string;
+  defaultImageFile: string;
+  content: PresentationSlideContent;
+}
+
+export const CUSTOM_SLIDE_ID_PREFIX = 'slide_';
+
 export interface PresentationSlidesLibrary {
   about: PresentationSlideContent;
   recognition: PresentationSlideContent;
   kiosk: PresentationSlideContent;
   contacts: ContactsSlideContent;
+  customSlides?: CustomPresentationSlide[];
   updatedAt?: string;
   updatedByUid?: string;
   updatedByName?: string;
@@ -74,14 +177,61 @@ export const PRESENTATION_SLIDE_DEFS: PresentationSlideDef[] = [
   {
     id: 'contacts',
     menuTitle: 'Контакты',
-    menuDescription: 'Контакты и карта проезда — лаконичное завершение сметы под подписями.',
+    menuDescription: 'Контакты и карта проезда — правая колонка объединённого подвала КП.',
     defaultImageFile: 'map-location.jpg',
     layout: 'contacts',
   },
 ];
 
-export function isContactsSlideId(id: PresentationSlideId): id is 'contacts' {
+export function isContactsSlideId(id: string): id is 'contacts' {
   return id === 'contacts';
+}
+
+export function isCustomSlideId(id: string): boolean {
+  return id.startsWith(CUSTOM_SLIDE_ID_PREFIX);
+}
+
+export function createCustomSlideId(): string {
+  return `${CUSTOM_SLIDE_ID_PREFIX}${Date.now()}`;
+}
+
+/** Blank standard-layout slide — base for newly created custom slides. */
+export function createBlankSlideContent(): PresentationSlideContent {
+  return {
+    title: 'Новый слайд',
+    badge: '',
+    badgeIcon: 'none',
+    disclaimer: 'Введите краткое описание или вводный текст для этого слайда...',
+    subtitle: 'Наши решения:',
+    bulletsText: ['Первый пункт списка решений', 'Второй пункт списка решений'].join('\n'),
+    body: '',
+    qrCaption: '',
+    imageDataUrl: null,
+    qrImageDataUrl: null,
+  };
+}
+
+export function createCustomSlideEntry(): CustomPresentationSlide {
+  return {
+    id: createCustomSlideId(),
+    menuTitle: 'Новый слайд',
+    menuDescription: 'Контентный слайд по стандартному шаблону.',
+    defaultImageFile: 'dev-team.png',
+    content: createBlankSlideContent(),
+  };
+}
+
+export function normalizeCustomSlide(
+  raw?: Partial<CustomPresentationSlide> | null
+): CustomPresentationSlide | null {
+  if (!raw || typeof raw.id !== 'string' || !isCustomSlideId(raw.id)) return null;
+  return {
+    id: raw.id,
+    menuTitle: asString(raw.menuTitle, 'Новый слайд'),
+    menuDescription: asString(raw.menuDescription, 'Контентный слайд по стандартному шаблону.'),
+    defaultImageFile: asString(raw.defaultImageFile, 'dev-team.png'),
+    content: normalizeSlideContent('about', raw.content ?? undefined),
+  };
 }
 
 export function isContactsContent(content: AnySlideContent): content is ContactsSlideContent {
@@ -114,6 +264,7 @@ export function createDefaultSlideContent(id: Exclude<PresentationSlideId, 'cont
       title: 'Система распознавания еды',
       badge:
         'Основано на принципах машинного зрения и алгоритмах искусственного интеллекта (AI)',
+      badgeIcon: 'ai',
       disclaimer:
         '*Обратите внимание: внешний вид интерфейса и конкретные модели оборудования могут отличаться от представленных в КП.',
       subtitle: 'Умная касса',
@@ -135,6 +286,7 @@ export function createDefaultSlideContent(id: Exclude<PresentationSlideId, 'cont
     return {
       title: 'Терминал самообслуживания',
       badge: '',
+      badgeIcon: 'none',
       disclaimer:
         '*Обратите внимание: внешний вид интерфейса и конкретные модели оборудования могут отличаться от представленных в КП.',
       subtitle: '«Как в Макдоналдс»',
@@ -150,6 +302,7 @@ export function createDefaultSlideContent(id: Exclude<PresentationSlideId, 'cont
   return {
     title: 'Команда разработки Аверс Технолоджи',
     badge: '',
+    badgeIcon: 'none',
     disclaimer:
       'Наша компания специализируется на разработке информационных систем для сферы общепита и автоматизации ритейла. Мы обладаем глубокой экспертизой и готовы реализовать проект любой сложности.',
     subtitle: 'Наши решения:',
@@ -178,6 +331,7 @@ export function createDefaultSlidesLibrary(): PresentationSlidesLibrary {
     recognition: createDefaultSlideContent('recognition'),
     kiosk: createDefaultSlideContent('kiosk'),
     contacts: createDefaultContactsSlideContent(),
+    customSlides: [],
   };
 }
 
@@ -187,8 +341,63 @@ export function createDefaultPresentationSlidesSelection(): {
   recognition: boolean;
   kiosk: boolean;
   contacts: boolean;
+  customIds: string[];
 } {
-  return { about: false, recognition: false, kiosk: false, contacts: true };
+  return { about: false, recognition: false, kiosk: false, contacts: true, customIds: [] };
+}
+
+/** Normalize estimate KP slide selection (built-ins + custom ids). */
+export function normalizePresentationSlidesSelection(
+  raw?: {
+    about?: boolean;
+    recognition?: boolean;
+    kiosk?: boolean;
+    contacts?: boolean;
+    customIds?: unknown;
+  } | null
+): {
+  about: boolean;
+  recognition: boolean;
+  kiosk: boolean;
+  contacts: boolean;
+  customIds: string[];
+} {
+  const customIds = Array.isArray(raw?.customIds)
+    ? [
+        ...new Set(
+          raw.customIds.filter(
+            (id): id is string => typeof id === 'string' && isCustomSlideId(id)
+          )
+        ),
+      ]
+    : [];
+
+  return {
+    about: raw?.about === true,
+    recognition: raw?.recognition === true,
+    kiosk: raw?.kiosk === true,
+    contacts: raw?.contacts === true,
+    customIds,
+  };
+}
+
+export function hasAnyPresentationSlideSelected(
+  slides?: {
+    about?: boolean;
+    recognition?: boolean;
+    kiosk?: boolean;
+    contacts?: boolean;
+    customIds?: string[];
+  } | null
+): boolean {
+  if (!slides) return false;
+  return (
+    slides.about === true ||
+    slides.recognition === true ||
+    slides.kiosk === true ||
+    slides.contacts === true ||
+    (slides.customIds?.length ?? 0) > 0
+  );
 }
 
 function asString(value: unknown, fallback = ''): string {
@@ -208,6 +417,7 @@ export function normalizeSlideContent(
   return {
     title: asString(raw.title, base.title),
     badge: asString(raw.badge, base.badge),
+    badgeIcon: normalizeBadgeIconId(raw.badgeIcon, base.badgeIcon),
     disclaimer: asString(raw.disclaimer, base.disclaimer),
     subtitle: asString(raw.subtitle, base.subtitle),
     bulletsText: asString(raw.bulletsText, base.bulletsText),
@@ -269,11 +479,19 @@ export function normalizeSlidesLibrary(raw: Record<string, unknown> | null): Pre
     recognition.qrImageDataUrl = asNullableString(raw.qrImageDataUrl);
   }
 
+  const customSlidesRaw = slidesRaw.customSlides;
+  const customSlides = Array.isArray(customSlidesRaw)
+    ? customSlidesRaw
+        .map((item) => normalizeCustomSlide(item as Partial<CustomPresentationSlide>))
+        .filter((item): item is CustomPresentationSlide => item !== null)
+    : [];
+
   return {
     about,
     recognition,
     kiosk,
     contacts,
+    customSlides,
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : undefined,
     updatedByUid: typeof raw.updatedByUid === 'string' ? raw.updatedByUid : undefined,
     updatedByName: typeof raw.updatedByName === 'string' ? raw.updatedByName : undefined,
@@ -289,9 +507,11 @@ export function parseBulletLines(text: string): string[] {
 
 export function resolveSlideImageSrc(
   slide: PresentationSlideContent,
-  id: Exclude<PresentationSlideId, 'contacts'>
+  id: Exclude<PresentationSlideId, 'contacts'> | string,
+  defaultImageFile?: string
 ): string {
   if (slide.imageDataUrl?.trim()) return slide.imageDataUrl;
+  if (defaultImageFile) return defaultSlideAssetUrl(defaultImageFile);
   const def = PRESENTATION_SLIDE_DEFS.find((item) => item.id === id);
   return defaultSlideAssetUrl(def?.defaultImageFile ?? 'dev-team.png');
 }
@@ -303,7 +523,7 @@ export function resolveContactsMapSrc(slide: ContactsSlideContent): string {
 
 export function resolveSlideQrSrc(
   slide: PresentationSlideContent,
-  id: Exclude<PresentationSlideId, 'contacts'>
+  id: Exclude<PresentationSlideId, 'contacts'> | string
 ): string | null {
   if (!slide.qrCaption.trim()) return null;
   if (slide.qrImageDataUrl?.trim()) return slide.qrImageDataUrl;

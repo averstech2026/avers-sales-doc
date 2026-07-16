@@ -193,7 +193,7 @@ export function CompaniesPage() {
           <p className="helper-text">
             В смете выберите заказчика из списка — подставятся название, логотип и реквизиты.
           </p>
-          <Link to="/estimate" className="btn btn--ghost btn-create-estimate">
+          <Link to="/" className="btn btn--ghost btn-create-estimate">
             Создать смету
           </Link>
         </div>

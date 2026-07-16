@@ -2,6 +2,9 @@ export interface ThemeColors {
   sidebarBg: string;
   sidebarActive: string;
   sidebarText: string;
+  sidebarBrandOpacity: number;
+  sidebarLinkOpacity: number;
+  sidebarGroupOpacity: number;
   button: string;
   tableHeader: string;
   highlightBg: string;
@@ -21,6 +24,9 @@ export const DEFAULT_THEME_COLORS: ThemeColors = {
   sidebarBg: '#7c818a',
   sidebarActive: '#db4040',
   sidebarText: '#ffffff',
+  sidebarBrandOpacity: 100,
+  sidebarLinkOpacity: 100,
+  sidebarGroupOpacity: 100,
   button: '#d81818',
   tableHeader: '#7c818a',
   highlightBg: '#fceded',
@@ -97,6 +103,12 @@ export interface Hsv {
 
 function clamp(value: number, min = 0, max = 255): number {
   return Math.min(max, Math.max(min, value));
+}
+
+export function normalizeOpacity(value: unknown, fallback: number): number {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.round(Math.min(100, Math.max(0, parsed)));
 }
 
 export function normalizeHex(hex: string, fallback = DEFAULT_THEME_COLORS.sidebarBg): string {
@@ -291,6 +303,12 @@ export function normalizeThemeColors(colors: Partial<ThemeColors>): ThemeColors 
     sidebarBg: normalizeHex(colors.sidebarBg ?? DEFAULT_THEME_COLORS.sidebarBg, DEFAULT_THEME_COLORS.sidebarBg),
     sidebarActive: normalizeHex(colors.sidebarActive ?? DEFAULT_THEME_COLORS.sidebarActive, DEFAULT_THEME_COLORS.sidebarActive),
     sidebarText: normalizeHex(colors.sidebarText ?? DEFAULT_THEME_COLORS.sidebarText, DEFAULT_THEME_COLORS.sidebarText),
+    sidebarBrandOpacity: normalizeOpacity(
+      colors.sidebarBrandOpacity,
+      DEFAULT_THEME_COLORS.sidebarBrandOpacity
+    ),
+    sidebarLinkOpacity: normalizeOpacity(colors.sidebarLinkOpacity, DEFAULT_THEME_COLORS.sidebarLinkOpacity),
+    sidebarGroupOpacity: normalizeOpacity(colors.sidebarGroupOpacity, DEFAULT_THEME_COLORS.sidebarGroupOpacity),
     button: normalizeHex(colors.button ?? DEFAULT_THEME_COLORS.button, DEFAULT_THEME_COLORS.button),
     tableHeader: normalizeHex(colors.tableHeader ?? DEFAULT_THEME_COLORS.tableHeader, DEFAULT_THEME_COLORS.tableHeader),
     highlightBg: normalizeHex(colors.highlightBg ?? DEFAULT_THEME_COLORS.highlightBg, DEFAULT_THEME_COLORS.highlightBg),
@@ -319,6 +337,15 @@ export function applyThemeColors(colors: ThemeColors): void {
   document.documentElement.style.setProperty('--color-primary-dark', adjustBrightness(theme.sidebarBg, -18));
   document.documentElement.style.setProperty('--color-sidebar-active', theme.sidebarActive);
   document.documentElement.style.setProperty('--color-sidebar-text', theme.sidebarText);
+  document.documentElement.style.setProperty(
+    '--sidebar-brand-text-opacity',
+    `${theme.sidebarBrandOpacity}%`
+  );
+  document.documentElement.style.setProperty('--sidebar-link-text-opacity', `${theme.sidebarLinkOpacity}%`);
+  document.documentElement.style.setProperty(
+    '--sidebar-group-label-opacity',
+    `${theme.sidebarGroupOpacity}%`
+  );
   document.documentElement.style.setProperty('--color-table-header', theme.tableHeader);
   document.documentElement.style.setProperty('--color-accent', theme.button);
   document.documentElement.style.setProperty('--color-accent-hover', adjustBrightness(theme.button, -28));
@@ -384,6 +411,9 @@ export function themeColorsEqual(a: ThemeColors, b: ThemeColors): boolean {
     a.sidebarBg === b.sidebarBg &&
     a.sidebarActive === b.sidebarActive &&
     a.sidebarText === b.sidebarText &&
+    a.sidebarBrandOpacity === b.sidebarBrandOpacity &&
+    a.sidebarLinkOpacity === b.sidebarLinkOpacity &&
+    a.sidebarGroupOpacity === b.sidebarGroupOpacity &&
     a.button === b.button &&
     a.tableHeader === b.tableHeader &&
     a.highlightBg === b.highlightBg &&
