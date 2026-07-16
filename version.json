@@ -24,6 +24,11 @@
       "version": "1.0.4",
       "date": "2026-07-16",
       "notes": "Rename project to Конструктор смет и КП Co-authored-by: Cursor <cursoragent@cursor.com>"
+    },
+    {
+      "version": "1.0.5",
+      "date": "2026-07-16",
+      "notes": "Use custom slide photos as default presentation assets. Promote the uploaded images for about, recognition, kiosk, and contacts slides into public assets so new estimates and resets use them without p"
     }
   ]
 }
