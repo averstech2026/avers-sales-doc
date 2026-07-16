@@ -3,6 +3,7 @@
 export const VERSION_HISTORY = [
   { version: '1.0.0', date: '2026-07-15', notes: 'Первый релиз' },
   { version: '1.0.1', date: '2026-07-16', notes: 'Add task editing functionality to estimate editor with improved UI for task creation and management. Introduced a new task input interface with save and cancel options, and updated presentation slide ' },
+  { version: '1.0.2', date: '2026-07-16', notes: 'fix: sanitize multiline commit messages in version bump GitHub Actions passes full commit body as DEPLOY_NOTES; newlines broke generated version.data.ts and failed the build. Co-authored-by: Cursor <c' },
 ] as const;
 
 const current = VERSION_HISTORY[VERSION_HISTORY.length - 1];
