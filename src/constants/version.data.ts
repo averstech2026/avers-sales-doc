@@ -5,6 +5,7 @@ export const VERSION_HISTORY = [
   { version: '1.0.1', date: '2026-07-16', notes: 'Add task editing functionality to estimate editor with improved UI for task creation and management. Introduced a new task input interface with save and cancel options, and updated presentation slide ' },
   { version: '1.0.2', date: '2026-07-16', notes: 'fix: sanitize multiline commit messages in version bump GitHub Actions passes full commit body as DEPLOY_NOTES; newlines broke generated version.data.ts and failed the build. Co-authored-by: Cursor <c' },
   { version: '1.0.3', date: '2026-07-16', notes: 'Add standard estimates, products catalog, and unified editor back navigation. Pin sticky headers without scroll jitter, improve slides editor UX, and expand PDF/Excel export and filters. Co-authored-b' },
+  { version: '1.0.4', date: '2026-07-16', notes: 'Rename project to Конструктор смет и КП Co-authored-by: Cursor <cursoragent@cursor.com>' },
 ] as const;
 
 const current = VERSION_HISTORY[VERSION_HISTORY.length - 1];

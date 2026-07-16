@@ -19,6 +19,11 @@
       "version": "1.0.3",
       "date": "2026-07-16",
       "notes": "Add standard estimates, products catalog, and unified editor back navigation. Pin sticky headers without scroll jitter, improve slides editor UX, and expand PDF/Excel export and filters. Co-authored-b"
+    },
+    {
+      "version": "1.0.4",
+      "date": "2026-07-16",
+      "notes": "Rename project to Конструктор смет и КП Co-authored-by: Cursor <cursoragent@cursor.com>"
     }
   ]
 }
