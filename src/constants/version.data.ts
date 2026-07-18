@@ -10,6 +10,7 @@ export const VERSION_HISTORY = [
   { version: '1.0.6', date: '2026-07-16', notes: 'Polish KP slide badges and add local text presets. Improve badge layout and premium outline icons with color options, and let editors save alternate text variants per slide under the live preview. Co-' },
   { version: '1.0.7', date: '2026-07-16', notes: 'Unify red accent lines at 1.5px and match title width on slides and PDF. Also gray the PDF header rule and uppercase the estimate details heading. Co-authored-by: Cursor <cursoragent@cursor.com>' },
   { version: '1.0.8', date: '2026-07-16', notes: 'Fix Deploy workflow re-runs and add manual trigger. Skip version bump on retry so push to main no longer fails after Pages is already updated; enable workflow_dispatch and Node 22. Co-authored-by: Cur' },
+  { version: '1.0.9', date: '2026-07-18', notes: 'Fix unused DEFAULT_ORG_SETTINGS import that broke Deploy build. Co-authored-by: Cursor <cursoragent@cursor.com>' },
 ] as const;
 
 const current = VERSION_HISTORY[VERSION_HISTORY.length - 1];
