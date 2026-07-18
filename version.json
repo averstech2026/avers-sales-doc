@@ -49,6 +49,11 @@
       "version": "1.0.9",
       "date": "2026-07-18",
       "notes": "Fix unused DEFAULT_ORG_SETTINGS import that broke Deploy build. Co-authored-by: Cursor <cursoragent@cursor.com>"
+    },
+    {
+      "version": "1.0.10",
+      "date": "2026-07-18",
+      "notes": "Add YandexGPT status badge and wire action buttons to theme tokens. Show AI connection state on the home header and align personalization/delete hover colors with design settings. Co-authored-by: Curs"
     }
   ]
 }
