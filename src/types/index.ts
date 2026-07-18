@@ -131,6 +131,8 @@ export interface Estimate {
   contractTemplateId?: string;
   /** Selected KP constructor slides (exported as PDF pages before the estimate table) */
   presentationSlides?: PresentationSlides;
+  /** Include legal requisites block in PDF footer (default: true) */
+  includeLegalRequisites?: boolean;
   createdByUid?: string;
   createdByName?: string;
   isDraft?: boolean;

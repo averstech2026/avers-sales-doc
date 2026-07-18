@@ -94,6 +94,9 @@ export async function saveEstimate(
       estimate.presentationSlides
     );
   }
+  if (estimate.includeLegalRequisites !== undefined) {
+    data.includeLegalRequisites = estimate.includeLegalRequisites;
+  }
   if (estimate.isDraft !== undefined) {
     data.isDraft = estimate.isDraft;
   }
@@ -254,6 +257,9 @@ export async function toggleArchiveEstimate(
     data.presentationSlides = normalizePresentationSlidesSelection(
       estimate.presentationSlides
     );
+  }
+  if (estimate.includeLegalRequisites !== undefined) {
+    data.includeLegalRequisites = estimate.includeLegalRequisites;
   }
   if (estimate.isDraft !== undefined) {
     data.isDraft = estimate.isDraft;

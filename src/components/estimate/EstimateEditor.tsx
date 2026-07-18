@@ -17,6 +17,7 @@ import {
 
 import { EstimateLogoSettings } from './EstimateLogoSettings';
 import { PresentationSlidesSelector } from './PresentationSlidesSelector';
+import { LegalRequisitesToggle } from './LegalRequisitesToggle';
 import { ClientCompanyPicker } from './ClientCompanyPicker';
 
 
@@ -267,6 +268,12 @@ export function EstimateEditor({ estimate, onChange }: EstimateEditorProps) {
         <div className="field field--wide">
 
           <PresentationSlidesSelector estimate={estimate} onChange={update} />
+
+        </div>
+
+        <div className="field field--wide">
+
+          <LegalRequisitesToggle estimate={estimate} onChange={update} />
 
         </div>
 

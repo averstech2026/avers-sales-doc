@@ -24,6 +24,11 @@ import {
   createDefaultSlidesLibrary,
   type PresentationSlidesLibrary,
 } from '../../utils/presentationSlides';
+import {
+  isLegalRequisitesIncluded,
+  resolveLegalRequisites,
+  type LegalRequisites,
+} from '../../utils/legalRequisites';
 
 /** Brand estimate accents — aligned with web `--color-estimate-rule`. */
 const BRAND_RED = '#ef4444';
@@ -53,6 +58,10 @@ export interface PdfExportOptions {
   };
   /** Full slides library (defaults + Firestore content). */
   slidesLibrary?: PresentationSlidesLibrary;
+  /** Include legal requisites in PDF footer (default: true). */
+  includeLegalRequisites?: boolean;
+  /** Override resolved org requisites (defaults from personalization / Avers). */
+  legalRequisites?: LegalRequisites | null;
 }
 
 export function pdfStyles(): string {
@@ -948,7 +957,13 @@ function buildUnifiedFooterBlockHtml(
       signerPosition: options.signature?.position?.trim() ?? '',
       clientName: estimate.clientName ?? '',
     },
-    contacts
+    contacts,
+    {
+      includeLegalRequisites: isLegalRequisitesIncluded(
+        options.includeLegalRequisites ?? estimate.includeLegalRequisites
+      ),
+      legalRequisites: options.legalRequisites ?? resolveLegalRequisites(),
+    }
   );
 }
 

@@ -52,6 +52,7 @@ export function createNewEstimate(
     rates: DEFAULT_RATES(),
     clientLogoId: 'none',
     presentationSlides: createDefaultPresentationSlidesSelection(),
+    includeLegalRequisites: true,
     isDraft: true,
     createdAt: now,
     updatedAt: now,
@@ -75,6 +76,7 @@ export function createNewStandardEstimate(
     vatRate: DEFAULT_STANDARD_VAT_RATE,
     clientLogoId: 'none',
     presentationSlides: createDefaultPresentationSlidesSelection(),
+    includeLegalRequisites: true,
     isDraft: true,
     createdAt: now,
     updatedAt: now,
@@ -125,6 +127,7 @@ export function buildDuplicateEstimate(source: Estimate): Estimate {
       ? { contractTemplateId: source.contractTemplateId }
       : {}),
     presentationSlides: normalizePresentationSlidesSelection(source.presentationSlides),
+    includeLegalRequisites: source.includeLegalRequisites !== false,
     isDraft: true,
     createdAt: now,
     updatedAt: now,

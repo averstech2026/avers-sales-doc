@@ -18,6 +18,7 @@ import {
 import { ClientCompanyPicker } from './ClientCompanyPicker';
 import { EstimateLogoSettings } from './EstimateLogoSettings';
 import { PresentationSlidesSelector } from './PresentationSlidesSelector';
+import { LegalRequisitesToggle } from './LegalRequisitesToggle';
 import { ProductPickerMenu } from './ProductPickerMenu';
 
 interface StandardEstimateEditorProps {
@@ -470,6 +471,10 @@ export function StandardEstimateEditor({ estimate, onChange }: StandardEstimateE
 
         <div className="field field--wide">
           <PresentationSlidesSelector estimate={estimate} onChange={update} />
+        </div>
+
+        <div className="field field--wide">
+          <LegalRequisitesToggle estimate={estimate} onChange={update} />
         </div>
 
         <label className="field field--wide">

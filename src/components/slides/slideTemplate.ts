@@ -14,6 +14,10 @@ import {
   type SlideBadgeIconId,
 } from '../../utils/presentationSlides';
 import { loadThemeColors } from '../../utils/personalization';
+import {
+  resolveLegalRequisites,
+  type LegalRequisites,
+} from '../../utils/legalRequisites';
 import { buildSlideBadgeIconSvgHtml } from './SlideBadgeIcon';
 
 function escapeHtml(value: string): string {
@@ -863,6 +867,53 @@ export function unifiedFooterSectionCss(): string {
       object-fit: cover !important;
       display: block;
     }
+
+    /* Legal requisites block under signatures / contacts */
+    .requisites-divider-line {
+      height: 1px;
+      background-color: #e2e8f0;
+      margin: 20px 0 15px 0;
+      width: 100%;
+    }
+    .printable-requisites-block {
+      margin-bottom: 8px;
+      font-family: inherit;
+    }
+    .printable-requisites-block.hide-requisites {
+      display: none !important;
+    }
+    .requisites-grid {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .req-column {
+      flex: 1;
+      font-size: 11px !important;
+      line-height: 1.5;
+      color: #64748b !important;
+    }
+    .req-label {
+      font-size: 10px !important;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700 !important;
+      color: #475569 !important;
+      margin-bottom: 6px;
+    }
+    .req-value {
+      font-size: 11px !important;
+      color: #64748b !important;
+      margin-bottom: 2px;
+    }
+    .req-value strong {
+      color: #1f2937 !important;
+      font-weight: 700;
+    }
+    .req-value span {
+      font-weight: 600;
+      color: #475569 !important;
+    }
   `;
 }
 
@@ -908,9 +959,43 @@ function buildIntegratedContactsColumnHtml(content: ContactsSlideContent): strin
   `;
 }
 
+export function buildLegalRequisitesBlockHtml(
+  include: boolean,
+  requisites?: LegalRequisites | null
+): string {
+  const r = requisites ?? resolveLegalRequisites();
+  const hideClass = include ? '' : ' hide-requisites';
+
+  return `
+    <div class="printable-requisites-block${hideClass}" id="pdf-requisites-section">
+      <div class="requisites-divider-line"></div>
+      <div class="requisites-grid">
+        <div class="req-column">
+          <div class="req-label">Организация</div>
+          <div class="req-value"><strong>${escapeHtml(r.fullName)}</strong></div>
+          <div class="req-value">Юр. адрес: ${escapeHtml(r.legalAddress)}</div>
+        </div>
+        <div class="req-column">
+          <div class="req-label">Регистрационные данные</div>
+          <div class="req-value"><span>ИНН:</span> ${escapeHtml(r.inn)}</div>
+          <div class="req-value"><span>КПП:</span> ${escapeHtml(r.kpp)}</div>
+          <div class="req-value"><span>ОГРН:</span> ${escapeHtml(r.ogrn)}</div>
+        </div>
+        <div class="req-column">
+          <div class="req-label">Банковские реквизиты</div>
+          <div class="req-value"><span>Р/с:</span> ${escapeHtml(r.bankAccount)}</div>
+          <div class="req-value"><span>Банк:</span> ${escapeHtml(r.bankName)}</div>
+          <div class="req-value"><span>БИК:</span> ${escapeHtml(r.bik)} &nbsp;&nbsp; <span>К/с:</span> ${escapeHtml(r.corrAccount)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 export function buildUnifiedFooterSectionHtml(
   signatures: UnifiedFooterSignatureParams,
-  contacts: ContactsSlideContent | null
+  contacts: ContactsSlideContent | null,
+  options: { includeLegalRequisites?: boolean; legalRequisites?: LegalRequisites | null } = {}
 ): string {
   const signerName = signatures.signerName.trim();
   const signerPosition = signatures.signerPosition.trim();
@@ -919,6 +1004,11 @@ export function buildUnifiedFooterSectionHtml(
   const gridClass = contacts
     ? 'footer-integration-grid'
     : 'footer-integration-grid footer-integration-grid--signatures-only';
+  const includeRequisites = options.includeLegalRequisites !== false;
+  const requisitesBlock = buildLegalRequisitesBlockHtml(
+    includeRequisites,
+    options.legalRequisites
+  );
 
   return `
     <div class="kp-unified-footer-section" data-slide="contacts">
@@ -944,6 +1034,7 @@ export function buildUnifiedFooterSectionHtml(
         </div>
         ${contactsColumn}
       </div>
+      ${requisitesBlock}
     </div>
   `;
 }

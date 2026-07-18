@@ -84,6 +84,9 @@ export function PdfPreviewModal({
             {slidesOn
               ? ' Выбранные слайды встраиваются в документ: маркетинговые — после шапки, «Контакты» — в объединённом подвале с подписями.'
               : ''}
+            {estimate.includeLegalRequisites !== false
+              ? ' В подвале документа отображаются юридические реквизиты.'
+              : ''}
           </p>
           <div className="pdf-preview__actions">
             <button type="button" className="btn btn--ghost" onClick={onClose} disabled={downloading}>
