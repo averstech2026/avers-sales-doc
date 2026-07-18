@@ -90,18 +90,18 @@
 }
 
 .products-type-badge--software {
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: var(--badge-project-bg);
+  color: var(--badge-project-fg);
 }
 
 .products-type-badge--service {
-  background: #f0fdf4;
-  color: #15803d;
+  background: var(--badge-standard-bg);
+  color: var(--badge-standard-fg);
 }
 
 .products-type-badge--hardware {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--ui-segment-track-bg);
+  color: var(--ui-slide-view-text);
 }
 
 .products-table__desc {

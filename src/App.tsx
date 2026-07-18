@@ -9,6 +9,7 @@ import { EstimatePage } from './pages/EstimatePage';
 import { CompaniesPage } from './pages/CompaniesPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { SlidesPage } from './pages/SlidesPage';
+import { PersonalizationPage } from './pages/PersonalizationPage';
 
 function AppRoutes() {
   const { user, loading, firebaseReady } = useAuth();
@@ -33,6 +34,7 @@ function AppRoutes() {
         <Route path="/companies" element={<CompaniesPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/slides" element={<SlidesPage />} />
+        <Route path="/settings/personalization" element={<PersonalizationPage />} />
       </Routes>
     </Layout>
   );

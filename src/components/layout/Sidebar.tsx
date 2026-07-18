@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Modal } from '../ui/Modal';
-import { PersonalizationSettings } from '../settings/PersonalizationSettings';
 import { ProfileSettings } from '../settings/ProfileSettings';
 import { AVERS_LOGO_ICON } from '../../utils/clientLogo';
 import { useAuth } from '../../context/AuthContext';
+import { usePersonalization } from '../../context/PersonalizationContext';
 import { getCopyrightYear, getVersionLabel, APP_VERSION } from '../../constants/version';
 import { SidebarUser } from './SidebarUser';
 
@@ -79,7 +79,7 @@ function readCollapsedPreference(): boolean {
 
 export function Sidebar() {
   const { isSuperadmin } = useAuth();
-  const [showSettings, setShowSettings] = useState(false);
+  const { orgSettings } = usePersonalization();
   const [showProfile, setShowProfile] = useState(false);
   const [collapsed, setCollapsed] = useState(readCollapsedPreference);
 
@@ -96,7 +96,12 @@ export function Sidebar() {
       <aside className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}>
         <div className="sidebar__head">
           <div className="sidebar__brand">
-            <img src={AVERS_LOGO_ICON} alt="" className="sidebar__brand-icon" aria-hidden="true" />
+            <img
+              src={orgSettings.logoDataUrl || AVERS_LOGO_ICON}
+              alt=""
+              className="sidebar__brand-icon"
+              aria-hidden="true"
+            />
             <span className="sidebar__brand-name">Аверс Технолоджи</span>
           </div>
           <button
@@ -130,15 +135,16 @@ export function Sidebar() {
                 </NavLink>
               ))}
               {isSuperadmin && (
-                <button
-                  type="button"
-                  className="sidebar__link personalization-section"
-                  onClick={() => setShowSettings(true)}
+                <NavLink
+                  to="/settings/personalization"
+                  className={({ isActive }) =>
+                    `sidebar__link personalization-section${isActive ? ' sidebar__link--active' : ''}`
+                  }
                   title={collapsed ? 'Персонализация' : undefined}
                 >
                   <span className="sidebar__link-icon">⚙</span>
                   <span className="sidebar__link-label">Персонализация</span>
-                </button>
+                </NavLink>
               )}
             </div>
           </div>
@@ -174,12 +180,6 @@ export function Sidebar() {
           </span>
         </div>
       </aside>
-
-      {isSuperadmin && (
-        <Modal open={showSettings} onClose={() => setShowSettings(false)} title="Персонализация" wide>
-          <PersonalizationSettings open={showSettings} />
-        </Modal>
-      )}
 
       <Modal open={showProfile} onClose={() => setShowProfile(false)} title="Профиль сотрудника" wide>
         <ProfileSettings open={showProfile} />

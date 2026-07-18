@@ -225,11 +225,84 @@ service cloud.firestore {
         && (!('updatedByName' in data) || data.updatedByName == null || data.updatedByName is string);
     }
 
+    function isValidPersonalizationTheme(theme) {
+      return theme is map
+        && (!('sidebarBg' in theme) || theme.sidebarBg is string)
+        && (!('sidebarActive' in theme) || theme.sidebarActive is string)
+        && (!('sidebarText' in theme) || theme.sidebarText is string)
+        && (!('button' in theme) || theme.button is string)
+        && (!('tableHeader' in theme) || theme.tableHeader is string)
+        && (!('highlightBg' in theme) || theme.highlightBg is string)
+        && (!('saveButton' in theme) || theme.saveButton is string)
+        && (!('createProject' in theme) || theme.createProject is string)
+        && (!('cornersAccent' in theme) || theme.cornersAccent is string)
+        && (!('cornersNeutral' in theme) || theme.cornersNeutral is string)
+        && (!('uiPrimaryText' in theme) || theme.uiPrimaryText is string)
+        && (!('uiSecondaryBg' in theme) || theme.uiSecondaryBg is string)
+        && (!('uiSecondaryBorder' in theme) || theme.uiSecondaryBorder is string)
+        && (!('uiSecondaryText' in theme) || theme.uiSecondaryText is string)
+        && (!('uiDangerBg' in theme) || theme.uiDangerBg is string)
+        && (!('uiDangerText' in theme) || theme.uiDangerText is string)
+        && (!('slideEditBg' in theme) || theme.slideEditBg is string)
+        && (!('slideViewBg' in theme) || theme.slideViewBg is string)
+        && (!('slideViewText' in theme) || theme.slideViewText is string)
+        && (!('slideViewBorder' in theme) || theme.slideViewBorder is string)
+        && (!('divider' in theme) || theme.divider is string)
+        && (!('actionMute' in theme) || theme.actionMute is string)
+        && (!('uiInputFocus' in theme) || theme.uiInputFocus is string)
+        && (!('uiBorderRadius' in theme) || theme.uiBorderRadius is number)
+        && (!('uiInputHeight' in theme) || theme.uiInputHeight is number)
+        && (!('sidebarBrandOpacity' in theme) || theme.sidebarBrandOpacity is number)
+        && (!('sidebarLinkOpacity' in theme) || theme.sidebarLinkOpacity is number)
+        && (!('sidebarGroupOpacity' in theme) || theme.sidebarGroupOpacity is number);
+    }
+
+    function isValidPersonalizationOrganization(org) {
+      return org is map
+        && (!('inn' in org) || (org.inn is string && org.inn.size() <= 20))
+        && (!('ogrn' in org) || (org.ogrn is string && org.ogrn.size() <= 20))
+        && (!('kpp' in org) || (org.kpp is string && org.kpp.size() <= 20))
+        && (!('fullName' in org) || (org.fullName is string && org.fullName.size() <= 300))
+        && (!('legalAddress' in org) || (org.legalAddress is string && org.legalAddress.size() <= 500))
+        && (!('bankAccount' in org) || (org.bankAccount is string && org.bankAccount.size() <= 40))
+        && (!('bik' in org) || (org.bik is string && org.bik.size() <= 20))
+        && (!('bankName' in org) || (org.bankName is string && org.bankName.size() <= 300))
+        && (!('logoDataUrl' in org)
+          || org.logoDataUrl == null
+          || (org.logoDataUrl is string && org.logoDataUrl.size() <= 900000));
+    }
+
+    function isValidPersonalizationPreset(preset) {
+      return preset is map
+        && preset.keys().hasAll(['id', 'name', 'colors'])
+        && preset.id is string
+        && preset.id.size() > 0
+        && preset.id.size() <= 128
+        && preset.name is string
+        && preset.name.size() > 0
+        && preset.name.size() <= 120
+        && isValidPersonalizationTheme(preset.colors);
+    }
+
+    function isValidPersonalizationSettings() {
+      let data = request.resource.data;
+      return (!('theme' in data) || isValidPersonalizationTheme(data.theme))
+        && (!('organization' in data) || isValidPersonalizationOrganization(data.organization))
+        && (!('customPresets' in data) || (
+          data.customPresets is list
+          && data.customPresets.size() <= 50
+        ))
+        && (!('updatedAt' in data) || data.updatedAt is string)
+        && (!('updatedByUid' in data) || data.updatedByUid == null || data.updatedByUid is string)
+        && (!('updatedByName' in data) || data.updatedByName == null || data.updatedByName is string);
+    }
+
     match /settings/{docId} {
       allow read: if isSignedIn();
-      allow create, update: if isSignedIn()
-        && docId == 'presentation_slides'
-        && isValidPresentationSlidesSettings();
+      allow create, update: if isSignedIn() && (
+        (docId == 'presentation_slides' && isValidPresentationSlidesSettings())
+        || (docId == 'personalization' && isValidPersonalizationSettings())
+      );
       allow delete: if false;
     }
   }
