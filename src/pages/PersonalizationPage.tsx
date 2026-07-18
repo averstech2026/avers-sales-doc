@@ -625,9 +625,11 @@ export function PersonalizationPage() {
 
             <article className="personalization-ds-card">
               <h3 className="personalization-ds-card__title">Кнопки действий</h3>
-              <p className="personalization-ds-card__hint">Secondary, Danger, слайды</p>
+              <p className="personalization-ds-card__hint">
+                Secondary («Изменить»), Danger («Удалить»), действия на слайдах
+              </p>
               <ColorPickerField
-                label="Secondary — фон"
+                label="Secondary — фон («Изменить»)"
                 value={themeDraft.uiSecondaryBg}
                 onChange={(value) => updateTheme('uiSecondaryBg', value)}
               />
@@ -642,9 +644,14 @@ export function PersonalizationPage() {
                 onChange={(value) => updateTheme('uiSecondaryText', value)}
               />
               <ColorPickerField
-                label="Danger — фон"
+                label="Danger — фон / текст («Удалить»)"
                 value={themeDraft.uiDangerBg}
                 onChange={(value) => updateTheme('uiDangerBg', value)}
+              />
+              <ColorPickerField
+                label="Danger — текст на залитой кнопке"
+                value={themeDraft.uiDangerText}
+                onChange={(value) => updateTheme('uiDangerText', value)}
               />
               <ColorPickerField
                 label="Слайд: «Редактировать»"
@@ -664,7 +671,7 @@ export function PersonalizationPage() {
               <div className="personalization-ds-card__preview personalization-ds-card__preview--row">
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn--ghost"
                   style={{
                     backgroundColor: themeDraft.uiSecondaryBg,
                     borderColor: themeDraft.uiSecondaryBorder,
@@ -672,14 +679,15 @@ export function PersonalizationPage() {
                     borderRadius: themeDraft.uiBorderRadius,
                   }}
                 >
-                  Добавить
+                  Изменить
                 </button>
                 <button
                   type="button"
-                  className="btn btn-danger"
+                  className="btn btn--ghost company-card__delete"
                   style={{
-                    backgroundColor: themeDraft.uiDangerBg,
-                    color: themeDraft.uiDangerText,
+                    backgroundColor: themeDraft.uiSecondaryBg,
+                    borderColor: themeDraft.uiSecondaryBorder,
+                    color: themeDraft.uiDangerBg,
                     borderRadius: themeDraft.uiBorderRadius,
                   }}
                 >

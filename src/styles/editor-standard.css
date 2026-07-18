@@ -478,8 +478,8 @@
 }
 
 .standard-spec__delete-btn:hover {
-  background: #fef2f2;
-  color: var(--color-danger, #ef4444);
+  background: color-mix(in srgb, var(--ui-danger-bg) 8%, white);
+  color: var(--ui-danger-bg);
 }
 
 /* ==========================================================================

@@ -144,20 +144,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: var(--ui-action-mute);
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.15s ease;
 }
 
 .action-item-btn.edit-btn:hover:not(:disabled) {
-  background-color: #f1f5f9;
-  color: #2563eb;
+  background-color: var(--ui-segment-track-bg);
+  color: var(--ui-create-project-bg);
 }
 
 .action-item-btn.delete-btn:hover:not(:disabled) {
-  background-color: #fef2f2;
-  color: #dc2626;
+  background-color: color-mix(in srgb, var(--ui-danger-bg) 8%, white);
+  color: var(--ui-danger-bg);
 }
 
 .action-item-btn:active:not(:disabled) {

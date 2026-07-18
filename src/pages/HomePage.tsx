@@ -20,6 +20,7 @@ import {
 } from '../services/firestore';
 import { resolveEstimateCreatorName } from '../services/auth';
 import { useAuth } from '../context/AuthContext';
+import { isYandexParseConfigured } from '../utils/yandexParseUrl';
 import type { EstimateListItem } from '../types';
 
 type EstimatesTab = 'active' | 'archive';
@@ -104,6 +105,7 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
   const [cloudStatus, setCloudStatus] = useState<CloudConnectionStatus>('checking');
   const [cloudModalOpen, setCloudModalOpen] = useState(false);
+  const yandexReady = isYandexParseConfigured();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [leavingIds, setLeavingIds] = useState<Set<string>>(new Set());
   const [actionError, setActionError] = useState('');
@@ -274,21 +276,42 @@ export function HomePage() {
             Интерактивный расчёт бюджета проектов ООО «Аверс Технолоджи»
           </p>
         </div>
-        <button
-          type="button"
-          className={`cloud-status-badge cloud-status-badge--${cloudStatus}`}
-          onClick={() => setCloudModalOpen(true)}
-          title="Настройки облачного подключения"
-        >
+        <div className="page-header__actions home-status-badges">
           <span
-            className={`status-dot${cloudStatus === 'connected' || cloudStatus === 'checking' ? ' pulsing' : ''}`}
-            aria-hidden="true"
-          />
-          <span className="cloud-icon" aria-hidden="true">
-            ☁️
+            className={`cloud-status-badge ai-status-badge${yandexReady ? ' ai-status-badge--connected' : ' ai-status-badge--offline'}`}
+            title={
+              yandexReady
+                ? 'YandexGPT подключён — доступен AI-разбор ТЗ'
+                : 'YandexGPT не настроен — используется шаблонный разбор'
+            }
+          >
+            <span
+              className={`status-dot${yandexReady ? ' pulsing' : ''}`}
+              aria-hidden="true"
+            />
+            <span className="ai-icon" aria-hidden="true">
+              ✦
+            </span>
+            <span className="status-text">
+              {yandexReady ? 'Подключён YandexGPT' : 'YandexGPT не настроен'}
+            </span>
           </span>
-          <span className="status-text">{getCloudStatusBadgeLabel(cloudStatus)}</span>
-        </button>
+          <button
+            type="button"
+            className={`cloud-status-badge cloud-status-badge--${cloudStatus}`}
+            onClick={() => setCloudModalOpen(true)}
+            title="Настройки облачного подключения"
+          >
+            <span
+              className={`status-dot${cloudStatus === 'connected' || cloudStatus === 'checking' ? ' pulsing' : ''}`}
+              aria-hidden="true"
+            />
+            <span className="cloud-icon" aria-hidden="true">
+              ☁️
+            </span>
+            <span className="status-text">{getCloudStatusBadgeLabel(cloudStatus)}</span>
+          </button>
+        </div>
       </header>
 
       <div className="home-page__hero">
