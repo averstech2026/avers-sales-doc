@@ -2,7 +2,6 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../firebase';
 import { COLLECTIONS } from '../constants/roles';
 import {
-  DEFAULT_ORG_SETTINGS,
   DEFAULT_THEME_COLORS,
   ORG_SETTINGS_KEY,
   THEME_COLORS_KEY,
