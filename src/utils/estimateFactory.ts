@@ -24,6 +24,13 @@ export function createSection(name: string, tasks: Task[] = []): Section {
   return { id: uuidv4(), name, tasks };
 }
 
+/** Avoid «1. 1. …» when section.name already includes a leading index. */
+export function formatNumberedSectionTitle(name: string, index: number): string {
+  const trimmed = name.trim();
+  if (/^\d+\.\s*/.test(trimmed)) return trimmed;
+  return `${index + 1}. ${trimmed}`;
+}
+
 export function createDefaultSections(): Section[] {
   return [
     createSection('1. Обсуждение с заказчиком ФТ (функциональных требований)', [

@@ -9,7 +9,7 @@ import {
   formatDate,
 } from '../../utils/calculator';
 import { exportStandardToExcel } from './standardExcel';
-import { isStandardEstimate } from '../../utils/estimateFactory';
+import { isStandardEstimate, formatNumberedSectionTitle } from '../../utils/estimateFactory';
 
 const FONT = 'Segoe UI';
 const CURRENCY_FMT = '#,##0" ₽"';
@@ -221,7 +221,7 @@ export async function exportToExcel(estimate: Estimate): Promise<void> {
   estimate.sections.forEach((section, sIdx) => {
     const sectionRow = sheet.addRow([
       '',
-      `${sIdx + 1}. ${section.name}`,
+      formatNumberedSectionTitle(section.name, sIdx),
       ...ROLES.map(() => ''),
       '',
     ]);

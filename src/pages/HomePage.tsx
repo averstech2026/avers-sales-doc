@@ -12,6 +12,7 @@ import {
   CloudConnectionSettings,
   type CloudConnectionStatus,
 } from '../components/settings/CloudConnectionSettings';
+import { YandexGptConnectionSettings } from '../components/settings/YandexGptConnectionSettings';
 import {
   deleteEstimate,
   duplicateEstimate,
@@ -105,6 +106,7 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
   const [cloudStatus, setCloudStatus] = useState<CloudConnectionStatus>('checking');
   const [cloudModalOpen, setCloudModalOpen] = useState(false);
+  const [yandexModalOpen, setYandexModalOpen] = useState(false);
   const yandexReady = isYandexParseConfigured();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [leavingIds, setLeavingIds] = useState<Set<string>>(new Set());
@@ -277,8 +279,10 @@ export function HomePage() {
           </p>
         </div>
         <div className="page-header__actions home-status-badges">
-          <span
+          <button
+            type="button"
             className={`cloud-status-badge ai-status-badge${yandexReady ? ' ai-status-badge--connected' : ' ai-status-badge--offline'}`}
+            onClick={() => setYandexModalOpen(true)}
             title={
               yandexReady
                 ? 'YandexGPT подключён — доступен AI-разбор ТЗ'
@@ -295,7 +299,7 @@ export function HomePage() {
             <span className="status-text">
               {yandexReady ? 'Подключён YandexGPT' : 'YandexGPT не настроен'}
             </span>
-          </span>
+          </button>
           <button
             type="button"
             className={`cloud-status-badge cloud-status-badge--${cloudStatus}`}
@@ -431,6 +435,15 @@ export function HomePage() {
         wide
       >
         <CloudConnectionSettings status={cloudStatus} />
+      </Modal>
+
+      <Modal
+        open={yandexModalOpen}
+        onClose={() => setYandexModalOpen(false)}
+        title="Подключение к YandexGPT"
+        wide
+      >
+        <YandexGptConnectionSettings />
       </Modal>
     </div>
   );

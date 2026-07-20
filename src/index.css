@@ -1309,12 +1309,12 @@ body.role-user .personalization-section {
 }
 
 .ai-status-badge {
-  cursor: default;
+  font-family: inherit;
 }
 
 .ai-status-badge:hover {
-  background-color: #f1f5f9;
-  color: #475569;
+  background-color: #e2e8f0;
+  color: #0f172a;
 }
 
 .ai-status-badge .ai-icon {
@@ -1324,6 +1324,10 @@ body.role-user .personalization-section {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.ai-status-badge--connected:hover {
+  border-color: #c4b5fd;
 }
 
 .ai-status-badge--connected .status-dot {
@@ -1508,6 +1512,9 @@ body.role-user .personalization-section {
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .cloud-connection-settings__meta div {

@@ -15,7 +15,7 @@ import {
   calculateStandardTotals,
   formatStandardLineCost,
 } from '../../utils/standardCalculator';
-import { isStandardEstimate } from '../../utils/estimateFactory';
+import { isStandardEstimate, formatNumberedSectionTitle } from '../../utils/estimateFactory';
 import { AVERS_LOGO } from '../../utils/clientLogo';
 import { loadThemeColors } from '../../utils/personalization';
 import { loadPresentationSlidesLibrary } from '../presentationSlides';
@@ -1017,7 +1017,7 @@ function buildTableHtml(estimate: Estimate): string {
       return `
         <tbody>
           <tr class="section-row">
-            <td colspan="${ROLES.length + 2}">${sIdx + 1}. ${escapeHtml(section.name)}</td>
+            <td colspan="${ROLES.length + 2}">${escapeHtml(formatNumberedSectionTitle(section.name, sIdx))}</td>
           </tr>
           ${tasksHtml}
           <tr class="total-row">
