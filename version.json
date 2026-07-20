@@ -54,6 +54,11 @@
       "version": "1.0.10",
       "date": "2026-07-18",
       "notes": "Add YandexGPT status badge and wire action buttons to theme tokens. Show AI connection state on the home header and align personalization/delete hover colors with design settings. Co-authored-by: Curs"
+    },
+    {
+      "version": "1.0.11",
+      "date": "2026-07-20",
+      "notes": "Add YandexGPT connection modal and fix duplicated section numbers in exports. Match the cloud status modal for AI badge clicks, and avoid double-prefixing section titles that already include an index "
     }
   ]
 }

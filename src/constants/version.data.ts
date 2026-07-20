@@ -12,6 +12,7 @@ export const VERSION_HISTORY = [
   { version: '1.0.8', date: '2026-07-16', notes: 'Fix Deploy workflow re-runs and add manual trigger. Skip version bump on retry so push to main no longer fails after Pages is already updated; enable workflow_dispatch and Node 22. Co-authored-by: Cur' },
   { version: '1.0.9', date: '2026-07-18', notes: 'Fix unused DEFAULT_ORG_SETTINGS import that broke Deploy build. Co-authored-by: Cursor <cursoragent@cursor.com>' },
   { version: '1.0.10', date: '2026-07-18', notes: 'Add YandexGPT status badge and wire action buttons to theme tokens. Show AI connection state on the home header and align personalization/delete hover colors with design settings. Co-authored-by: Curs' },
+  { version: '1.0.11', date: '2026-07-20', notes: 'Add YandexGPT connection modal and fix duplicated section numbers in exports. Match the cloud status modal for AI badge clicks, and avoid double-prefixing section titles that already include an index ' },
 ] as const;
 
 const current = VERSION_HISTORY[VERSION_HISTORY.length - 1];
